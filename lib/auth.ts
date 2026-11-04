@@ -11,5 +11,10 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  plugins: [nextCookies()] 
+  user: {
+    additionalFields: {
+      company: { type: "string", required: true },
+    },
+  },
+  plugins: [nextCookies()],
 });

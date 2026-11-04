@@ -15,6 +15,7 @@ datasource db {
 model User {
   id            String    @id
   name          String
+  company       String    @default("")
   email         String
   emailVerified Boolean   @default(false)
   image         String?
