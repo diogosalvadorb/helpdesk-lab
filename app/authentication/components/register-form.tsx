@@ -20,7 +20,11 @@ import { registerSchema } from "@/lib/validations/register";
 
 type RegisterValues = z.infer<typeof registerSchema>;
 
-export default function RegisterForm() {
+export default function RegisterForm({
+  onSwitchToLogin,
+}: {
+  onSwitchToLogin: () => void;
+}) {
   const router = useRouter();
 
   const form = useForm<RegisterValues>({
@@ -34,7 +38,7 @@ export default function RegisterForm() {
     },
   });
 
-  const { execute, status } = useAction(register, {
+  const { execute, status, result } = useAction(register, {
     onSuccess: (result) => {
       if (result?.data?.message) {
         toast.success(result.data.message);
@@ -57,7 +61,10 @@ export default function RegisterForm() {
           Preencha seus dados para criar sua conta.
         </p>
       </div>
-      <form noValidate onSubmit={form.handleSubmit((values) => execute(values))}>
+      <form
+        noValidate
+        onSubmit={form.handleSubmit((values) => execute(values))}
+      >
         <FieldGroup>
           <Controller
             name="name"
@@ -160,7 +167,20 @@ export default function RegisterForm() {
             {status === "executing" ? "Criando conta..." : "Criar conta"}
           </Button>
         </FieldGroup>
+        {(result.serverError || result.validationErrors?._errors?.[0]) && (
+          <p role="alert" className="text-destructive text-sm">
+            {result.serverError ?? result.validationErrors?._errors?.[0]}
+          </p>
+        )}
       </form>
+      <Button
+        type="button"
+        variant="link"
+        disabled={status === "executing"}
+        onClick={onSwitchToLogin}
+      >
+        Já tem uma conta? Entrar
+      </Button>
     </div>
   );
 }
