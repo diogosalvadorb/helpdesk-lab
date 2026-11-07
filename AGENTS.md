@@ -1,3 +1,8 @@
+## Estilos do projeto
+
+- Nunca crie arquivos CSS separados por página ou componente, como `home.css` ou `home.module.css`.
+- Centralize os estilos em `app/globals.css` e reutilize as variáveis do tema. Quando faltar um token, crie a variável em `app/globals.css`.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
