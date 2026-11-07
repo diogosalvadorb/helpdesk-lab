@@ -5,6 +5,32 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --color-auth-background: var(--auth-background);
+  --color-auth-foreground: var(--auth-foreground);
+  --color-auth-primary: var(--auth-primary);
+  --color-auth-card: var(--auth-card);
+  --color-auth-muted: var(--auth-muted);
+  --color-auth-border: var(--auth-border);
+  --color-auth-destructive: var(--auth-destructive);
+  --color-auth-story: var(--auth-story);
+  --color-auth-story-border: var(--auth-story-border);
+  --color-auth-orbit: var(--auth-orbit);
+  --color-auth-mini-border: var(--auth-mini-border);
+  --color-auth-check: var(--auth-check);
+  --color-auth-check-foreground: var(--auth-check-foreground);
+  --color-auth-track: var(--auth-track);
+  --color-auth-progress: var(--auth-progress);
+  --color-auth-subtle: var(--auth-subtle);
+  --color-auth-footer: var(--auth-footer);
+  --color-auth-top: var(--auth-top);
+  --color-auth-input-foreground: var(--auth-input-foreground);
+  --color-auth-placeholder: var(--auth-placeholder);
+  --color-auth-bottom: var(--auth-bottom);
+  --color-auth-overlay: var(--auth-overlay);
+  --font-auth: "Segoe UI", sans-serif;
+  --font-auth-display: Georgia, serif;
+  --shadow-auth-mini: var(--auth-shadow-mini);
+  --shadow-auth-orbit: var(--auth-shadow-orbit);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
@@ -49,6 +75,30 @@
 }
 
 :root {
+  --auth-background: #fafcfb;
+  --auth-foreground: #182e25;
+  --auth-primary: #24644e;
+  --auth-card: #fff;
+  --auth-muted: #677e71;
+  --auth-border: #d5e0d8;
+  --auth-destructive: #ae463e;
+  --auth-story: #dfeae2;
+  --auth-story-border: #cfddd3;
+  --auth-orbit: #bccfc1;
+  --auth-mini-border: #c9d9ce;
+  --auth-check: #dce9df;
+  --auth-check-foreground: #365943;
+  --auth-track: #e9efeb;
+  --auth-progress: #4a8060;
+  --auth-subtle: #6e8177;
+  --auth-footer: #68806f;
+  --auth-top: #718679;
+  --auth-input-foreground: #375342;
+  --auth-placeholder: #8b9c91;
+  --auth-bottom: #7a8f80;
+  --auth-overlay: #1b30266b;
+  --auth-shadow-mini: 0 0.75rem 1.875rem #314e3910;
+  --auth-shadow-orbit: 0 0 0 3.75rem #d5e3d880, 0 0 0 7.5rem #d5e3d840;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -126,5 +176,115 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* Authentication dimensions mirror the Doop frames at the default root size. */
+.auth-screen {
+  line-height: normal;
+}
+
+.auth-box {
+  position: relative;
+  width: 100%;
+  max-width: 24.375rem;
+  margin: auto;
+}
+
+.auth-box h1 {
+  line-height: normal;
+  font-weight: 400;
+}
+
+.auth-box [data-slot="field-label"] {
+  line-height: normal;
+}
+
+.auth-box [data-slot="field-error"] {
+  line-height: 1.5;
+}
+
+.auth-box [data-slot="field-group"] {
+  gap: 1.25rem;
+}
+
+.auth-box .auth-links {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 1.1875rem;
+  margin-bottom: 0.3125rem;
+  font-size: 0.6875rem;
+}
+
+.auth-box > p:last-child {
+  margin-bottom: 1.75rem;
+}
+
+.auth-text-link {
+  display: inline;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: var(--auth-primary);
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  white-space: normal;
+  vertical-align: baseline;
+}
+
+.auth-checkbox {
+  width: 0.8125rem;
+  height: 0.8125rem;
+  border-radius: 0.125rem;
+  border-color: var(--auth-subtle);
+  background-color: var(--auth-card);
+  margin-inline: 0.25rem 0.1875rem;
+}
+
+.auth-box #company-hint {
+  line-height: 1.5;
+}
+
+.auth-box #password-hint {
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  line-height: normal;
+}
+
+.auth-box [data-slot="field"]:has(#register-password) {
+  margin-bottom: -0.125rem;
+}
+
+.auth-box [data-slot="field"]:has(#accept-terms) {
+  margin-bottom: 0.125rem;
+}
+
+.auth-box [data-slot="field"]:has(#accept-terms) > div:first-child {
+  min-height: 1.1875rem;
+}
+
+.auth-box > p.text-auth-bottom {
+  font-size: 0.8125rem;
+}
+
+.auth-checkbox[data-checked] {
+  background-color: var(--auth-primary);
+  border-color: var(--auth-primary);
+  color: var(--auth-card);
+}
+
+@media (width < 50.0625rem) {
+  .auth-screen,
+  .auth-screen > section:last-child {
+    min-height: max(52.75rem, 100svh);
+  }
+
+  .auth-box {
+    margin: 5.625rem auto 4.375rem;
+    padding-block: 0;
   }
 }

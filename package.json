@@ -2,6 +2,7 @@
   "name": "helpdesk-lab",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "npm@11.19.1",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -48,6 +49,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.5",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-simple-import-sort": "^14.0.0",
     "prettier": "^3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "prisma": "^7.10.1",

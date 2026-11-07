@@ -1,29 +1,38 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAction } from "next-safe-action/hooks";
-import { toast } from "sonner";
+import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { z } from "zod";
 
+import { login } from "@/actions/auth/login";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { login } from "@/actions/auth/login";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { loginSchema } from "@/lib/validations/login";
+
+import { AuthInfo } from "./auth-info";
+import { AuthInput as Input } from "./auth-input";
+import PasswordInput from "./password-input";
 
 type LoginValues = z.infer<typeof loginSchema>;
 
 export default function LoginForm({
-  onSwitchToRegister,
+  onBusyChange,
 }: {
-  onSwitchToRegister: () => void;
+  onBusyChange: (busy: boolean) => void;
 }) {
   const router = useRouter();
 
@@ -32,10 +41,16 @@ export default function LoginForm({
     defaultValues: {
       email: "",
       password: "",
+      rememberMe: false,
     },
   });
 
-  const { execute, status, result } = useAction(login, {
+  const {
+    execute,
+    status,
+    result,
+    isPending: busy,
+  } = useAction(login, {
     onSuccess: (result) => {
       if (result?.data?.message) {
         toast.success(result.data.message);
@@ -51,16 +66,25 @@ export default function LoginForm({
     },
   });
 
+  useEffect(() => {
+    onBusyChange(busy);
+    return () => onBusyChange(false);
+  }, [busy, onBusyChange]);
+
   return (
-    <div className="flex w-full max-w-sm flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold">Entrar</h1>
-        <p className="text-muted-foreground text-sm">
-          Acesse sua conta para continuar.
-        </p>
+    <div className="auth-box">
+      <div className="text-auth-muted text-[0.625rem] font-semibold tracking-[0.10625rem] uppercase">
+        Bem-vindo de volta
       </div>
+      <h1 className="font-auth-display mt-2 mb-3 text-4xl leading-[1.15] tracking-[-0.0625rem] max-[50.0625rem]:text-[2rem]">
+        Seu suporte começa aqui.
+      </h1>
+      <p className="text-auth-muted mb-7 text-[0.8125rem] leading-[1.65]">
+        Entre para acompanhar seus chamados e falar com nossa equipe.
+      </p>
       <form
         noValidate
+        aria-busy={busy}
         onSubmit={form.handleSubmit((values) => execute(values))}
       >
         <FieldGroup>
@@ -69,18 +93,24 @@ export default function LoginForm({
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="login-email">
-                  E-mail corporativo
+                <FieldLabel
+                  className="text-xs font-medium"
+                  htmlFor="login-email"
+                >
+                  E-mail corporativo *
                 </FieldLabel>
                 <Input
                   {...field}
                   id="login-email"
                   type="email"
                   autoComplete="email"
+                  placeholder="voce@empresa.com.br"
+                  disabled={busy}
+                  required
                   aria-invalid={fieldState.invalid}
                 />
                 {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
+                  <FieldError className="text-xs" errors={[fieldState.error]} />
                 )}
               </Field>
             )}
@@ -90,38 +120,78 @@ export default function LoginForm({
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="login-password">Senha</FieldLabel>
-                <Input
+                <FieldLabel
+                  className="text-xs font-medium"
+                  htmlFor="login-password"
+                >
+                  Senha *
+                </FieldLabel>
+                <PasswordInput
                   {...field}
                   id="login-password"
-                  type="password"
                   autoComplete="current-password"
+                  placeholder="••••••••"
+                  disabled={busy}
+                  required
                   aria-invalid={fieldState.invalid}
                 />
                 {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
+                  <FieldError className="text-xs" errors={[fieldState.error]} />
                 )}
               </Field>
             )}
           />
-          <Button type="submit" disabled={status === "executing"}>
-            {status === "executing" ? "Entrando..." : "Entrar"}
+          <div className="auth-links">
+            <Controller
+              name="rememberMe"
+              control={form.control}
+              render={({ field }) => (
+                <Label
+                  className="flex items-center gap-1.75 text-[0.6875rem] leading-[normal] font-normal"
+                  htmlFor="remember-me"
+                >
+                  <Checkbox
+                    className="auth-checkbox"
+                    id="remember-me"
+                    name={field.name}
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    onBlur={field.onBlur}
+                    ref={field.ref}
+                    disabled={busy}
+                  />
+                  Manter conectado
+                </Label>
+              )}
+            />
+            <AuthInfo topic="recovery">Esqueci minha senha</AuthInfo>
+          </div>
+          <Button
+            className="bg-auth-primary text-auth-card hover:bg-auth-primary/90 h-10.5 w-full rounded-md text-xs font-medium"
+            type="submit"
+            disabled={busy}
+          >
+            {status === "executing" ? "Entrando..." : "Entrar na minha conta"}
+            <ArrowRight
+              className="size-4.25"
+              strokeWidth={1}
+              aria-hidden="true"
+            />
           </Button>
         </FieldGroup>
         {(result.serverError || result.validationErrors?._errors?.[0]) && (
-          <p role="alert" className="text-destructive text-sm">
+          <p role="alert" className="text-auth-destructive mt-4 text-xs">
             {result.serverError ?? result.validationErrors?._errors?.[0]}
           </p>
         )}
       </form>
-      <Button
-        type="button"
-        variant="link"
-        disabled={status === "executing"}
-        onClick={onSwitchToRegister}
-      >
-        Ainda não tem uma conta? Criar conta
-      </Button>
+      <Separator className="bg-auth-border my-5" />
+      <p className="text-auth-muted text-center text-[0.6875rem] leading-[1.65]">
+        Faz parte da equipe de TI?{" "}
+        <Link className="text-auth-primary hover:underline" href="/">
+          Acessar central de operações →
+        </Link>
+      </p>
     </div>
   );
 }

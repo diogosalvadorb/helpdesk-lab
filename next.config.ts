@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  logging: {
+    serverFunctions: false,
+  },
   /* config options here */
   experimental: {
     agentFeedback: true,
