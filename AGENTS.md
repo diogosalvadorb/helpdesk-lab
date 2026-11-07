@@ -1,7 +1,50 @@
+## Projeto
+
+- Este projeto é o Helpdesk Lab, um sistema de suporte para empresas.
+- Use português brasileiro nos textos da interface.
+- Preserve as alterações locais existentes.
+- Não faça commits, push ou deploy sem solicitação.
+
 ## Estilos do projeto
 
 - Nunca crie arquivos CSS separados por página ou componente, como `home.css` ou `home.module.css`.
 - Centralize os estilos em `app/globals.css` e reutilize as variáveis do tema. Quando faltar um token, crie a variável em `app/globals.css`.
+
+## Tecnologias e comandos
+
+- Use npm como único gerenciador de pacotes.
+- Mantenha package-lock.json atualizado ao alterar dependências.
+- Não crie lockfiles ou configurações de outros gerenciadores.
+- Use TypeScript e evite any sem justificativa.
+
+## Interface
+
+- Consulte os componentes existentes antes de criar novos.
+- Use shadcn/ui para componentes de interface.
+- Use cores dos tokens definidos em app/globals.css.
+- Use rem para medidas explícitas.
+- Use Image do Next.js para imagens.
+- Garanta responsividade, navegação por teclado e rótulos acessíveis.
+- Ao implementar um layout do Doop, consulte o MCP e compare
+  a implementação renderizada com a referência.
+
+## Next.js e dados
+
+- Prefira Server Components; use Client Components quando houver necessidade de estado, eventos ou APIs do navegador.
+- Mantenha acesso ao banco e segredos no servidor.
+- Valide entradas no servidor, mesmo quando houver validação no cliente.
+- Reutilize a instância de Prisma e a configuração do Better Auth.
+- Não altere o schema nem execute migrações sem necessidade da tarefa.
+- Nunca registre senhas, tokens ou segredos nos logs.
+- Consulta de dados crie um arquivo ts em `data/arquivo.ts`
+
+## Verificação e entrega
+
+- Execute as verificações adequadas à alteração.
+- Para mudanças de código, execute npm run lint e npm run build.
+- Para mudanças visuais, confira desktop e mobile no navegador.
+- Não afirme que algo foi testado sem executar a verificação.
+- Informe o que mudou, os resultados e as limitações restantes.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
