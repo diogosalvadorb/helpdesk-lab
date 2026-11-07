@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -13,14 +8,24 @@ datasource db {
 }
 
 model User {
-  id            String    @id
+  id            String                  @id
   name          String
-  company       String    @default("")
+  company       String                  @default("")
   email         String
-  emailVerified Boolean   @default(false)
+  emailVerified Boolean                 @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  role          UserRole                @default(CLIENT)
+  memberships   CompanyMember[]
+  supportAgent  SupportAgent?
+  messages      TicketMessage[]
+  attachments   TicketAttachment[]
+  events        TicketEvent[]
+  escalations   TicketEscalation[]
+  articles      KnowledgeArticle[]
+  notifications Notification[]
+  preferences   NotificationPreference?
   sessions      Session[]
   accounts      Account[]
 
@@ -74,4 +79,531 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+enum UserRole {
+  CLIENT
+  AGENT
+  ADMIN
+}
+
+enum CompanyStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum CompanyRole {
+  REQUESTER
+  MANAGER
+  ADMIN
+}
+
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  SUSPENDED
+}
+
+enum SupportLevel {
+  N1
+  N2
+  N3
+}
+
+enum AgentAvailability {
+  AVAILABLE
+  BUSY
+  AWAY
+  OFFLINE
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  INVESTIGATING
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+  CANCELED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TicketImpact {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TicketChannel {
+  PORTAL
+  EMAIL
+  PHONE
+  INTERNAL
+}
+
+enum ContentVisibility {
+  PUBLIC
+  INTERNAL
+}
+
+enum TicketEventType {
+  CREATED
+  STATUS_CHANGED
+  PRIORITY_CHANGED
+  ASSIGNED
+  DEPARTMENT_CHANGED
+  ESCALATED
+  SLA_PAUSED
+  SLA_RESUMED
+  RESOLVED
+  REOPENED
+  CLOSED
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  CANCELED
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum NotificationType {
+  TICKET_CREATED
+  TICKET_REPLIED
+  CUSTOMER_REPLY_REQUIRED
+  TICKET_ASSIGNED
+  TICKET_ESCALATED
+  TICKET_RESOLVED
+  SLA_WARNING
+  SLA_BREACHED
+  MEMBERSHIP_APPROVED
+}
+
+model Company {
+  id            String          @id @default(cuid())
+  name          String
+  legalName     String?
+  taxId         String?         @unique
+  contactName   String?
+  contactEmail  String?
+  contactPhone  String?
+  status        CompanyStatus   @default(ACTIVE)
+  internalNotes String?         @db.Text
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  members       CompanyMember[]
+  departments   Department[]
+  contracts     Contract[]
+  tickets       Ticket[]
+
+  @@index([status, name])
+  @@map("company")
+}
+
+model Department {
+  id          String          @id @default(cuid())
+  companyId   String
+  company     Company         @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  name        String
+  description String?
+  active      Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  members     CompanyMember[]
+  tickets     Ticket[]
+
+  @@unique([companyId, name])
+  @@unique([companyId, id])
+  @@map("department")
+}
+
+model CompanyMember {
+  companyId    String
+  userId       String
+  company      Company          @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  user         User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  departmentId String?
+  department   Department?      @relation(fields: [companyId, departmentId], references: [companyId, id], onDelete: Restrict)
+  role         CompanyRole      @default(REQUESTER)
+  status       MembershipStatus @default(PENDING)
+  approvedAt   DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  tickets      Ticket[]
+
+  @@id([companyId, userId])
+  @@index([userId, status])
+  @@index([companyId, departmentId])
+  @@map("company_member")
+}
+
+model SupportTeam {
+  id          String             @id @default(cuid())
+  name        String             @unique
+  description String?
+  active      Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  agents      SupportAgent[]
+  tickets     Ticket[]
+  escalations TicketEscalation[]
+
+  @@map("support_team")
+}
+
+model SupportAgent {
+  userId           String             @id
+  user             User               @relation(fields: [userId], references: [id], onDelete: Restrict)
+  teamId           String
+  team             SupportTeam        @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  level            SupportLevel       @default(N1)
+  availability     AgentAvailability  @default(OFFLINE)
+  maxActiveTickets Int                @default(10)
+  active           Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  assignedTickets  Ticket[]
+  escalations      TicketEscalation[]
+
+  @@index([teamId, level, active])
+  @@index([availability])
+  @@map("support_agent")
+}
+
+model TicketCategory {
+  id           String             @id @default(cuid())
+  name         String             @unique
+  description  String?
+  defaultLevel SupportLevel       @default(N1)
+  active       Boolean            @default(true)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  tickets      Ticket[]
+  articles     KnowledgeArticle[]
+
+  @@map("ticket_category")
+}
+
+model BusinessCalendar {
+  id         String            @id @default(cuid())
+  name       String            @unique
+  timeZone   String            @default("America/Sao_Paulo")
+  alwaysOpen Boolean           @default(false)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  hours      BusinessHours[]
+  holidays   CalendarHoliday[]
+  policies   SlaPolicy[]
+
+  @@map("business_calendar")
+}
+
+model BusinessHours {
+  id          String           @id @default(cuid())
+  calendarId  String
+  calendar    BusinessCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  weekday     Int              @db.SmallInt
+  startMinute Int              @db.SmallInt
+  endMinute   Int              @db.SmallInt
+
+  @@unique([calendarId, weekday, startMinute])
+  @@map("business_hours")
+}
+
+model CalendarHoliday {
+  id         String           @id @default(cuid())
+  calendarId String
+  calendar   BusinessCalendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  date       DateTime         @db.Date
+  name       String
+
+  @@unique([calendarId, date])
+  @@map("calendar_holiday")
+}
+
+model SlaPolicy {
+  id                        String              @id @default(cuid())
+  name                      String
+  version                   Int                 @default(1)
+  calendarId                String
+  calendar                  BusinessCalendar    @relation(fields: [calendarId], references: [id], onDelete: Restrict)
+  pauseWhileWaitingCustomer Boolean             @default(true)
+  active                    Boolean             @default(true)
+  createdAt                 DateTime            @default(now())
+  updatedAt                 DateTime            @updatedAt
+  targets                   SlaTarget[]
+  escalationRules           SlaEscalationRule[]
+  contracts                 Contract[]
+
+  @@unique([name, version])
+  @@map("sla_policy")
+}
+
+model SlaTarget {
+  id                   String         @id @default(cuid())
+  policyId             String
+  policy               SlaPolicy      @relation(fields: [policyId], references: [id], onDelete: Restrict)
+  priority             TicketPriority
+  firstResponseMinutes Int
+  resolutionMinutes    Int
+  warningPercent       Int            @default(80) @db.SmallInt
+  tickets              Ticket[]
+
+  @@unique([policyId, priority])
+  @@map("sla_target")
+}
+
+model SlaEscalationRule {
+  id                String       @id @default(cuid())
+  policyId          String
+  policy            SlaPolicy    @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  fromLevel         SupportLevel
+  toLevel           SupportLevel
+  resolutionPercent Int          @db.SmallInt
+  active            Boolean      @default(true)
+
+  @@unique([policyId, fromLevel])
+  @@map("sla_escalation_rule")
+}
+
+model Contract {
+  id             String         @id @default(cuid())
+  number         String         @unique
+  companyId      String
+  company        Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  slaPolicyId    String
+  slaPolicy      SlaPolicy      @relation(fields: [slaPolicyId], references: [id], onDelete: Restrict)
+  name           String
+  status         ContractStatus @default(DRAFT)
+  startsAt       DateTime
+  endsAt         DateTime?
+  slaGoalPercent Decimal        @default(95) @db.Decimal(5, 2)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  tickets        Ticket[]
+
+  @@unique([companyId, id])
+  @@index([companyId, status, startsAt])
+  @@map("contract")
+}
+
+model Ticket {
+  id                   String             @id @default(cuid())
+  number               Int                @unique @default(autoincrement())
+  companyId            String
+  company              Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  requesterId          String
+  requester            CompanyMember      @relation(fields: [companyId, requesterId], references: [companyId, userId], onDelete: Restrict)
+  departmentId         String
+  department           Department         @relation(fields: [companyId, departmentId], references: [companyId, id], onDelete: Restrict)
+  contractId           String?
+  contract             Contract?          @relation(fields: [companyId, contractId], references: [companyId, id], onDelete: Restrict)
+  categoryId           String
+  category             TicketCategory     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  teamId               String?
+  team                 SupportTeam?       @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  assigneeId           String?
+  assignee             SupportAgent?      @relation(fields: [assigneeId], references: [userId], onDelete: Restrict)
+  subject              String
+  description          String             @db.Text
+  status               TicketStatus       @default(OPEN)
+  priority             TicketPriority     @default(MEDIUM)
+  impact               TicketImpact       @default(MEDIUM)
+  level                SupportLevel       @default(N1)
+  channel              TicketChannel      @default(PORTAL)
+  slaTargetId          String?
+  slaTarget            SlaTarget?         @relation(fields: [slaTargetId], references: [id], onDelete: Restrict)
+  firstResponseMinutes Int?
+  resolutionMinutes    Int?
+  firstResponseDueAt   DateTime?
+  resolutionDueAt      DateTime?
+  firstRespondedAt     DateTime?
+  resolvedAt           DateTime?
+  closedAt             DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  messages             TicketMessage[]
+  attachments          TicketAttachment[]
+  events               TicketEvent[]
+  escalations          TicketEscalation[]
+  slaPauses            TicketSlaPause[]
+  rating               TicketRating?
+  notifications        Notification[]
+
+  @@index([companyId, status, createdAt])
+  @@index([companyId, requesterId, createdAt])
+  @@index([companyId, departmentId])
+  @@index([companyId, contractId])
+  @@index([assigneeId, status])
+  @@index([teamId, level, status, priority])
+  @@index([status, resolutionDueAt])
+  @@index([status, firstResponseDueAt])
+  @@index([categoryId])
+  @@index([slaTargetId])
+  @@map("ticket")
+}
+
+model TicketMessage {
+  id          String             @id @default(cuid())
+  ticketId    String
+  ticket      Ticket             @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  authorId    String
+  author      User               @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  body        String             @db.Text
+  visibility  ContentVisibility  @default(PUBLIC)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  attachments TicketAttachment[]
+
+  @@unique([ticketId, id])
+  @@index([ticketId, visibility, createdAt])
+  @@index([authorId])
+  @@map("ticket_message")
+}
+
+model TicketAttachment {
+  id         String            @id @default(cuid())
+  ticketId   String
+  ticket     Ticket            @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  messageId  String?
+  message    TicketMessage?    @relation(fields: [ticketId, messageId], references: [ticketId, id], onDelete: Restrict)
+  uploaderId String
+  uploader   User              @relation(fields: [uploaderId], references: [id], onDelete: Restrict)
+  fileName   String
+  mimeType   String
+  sizeBytes  Int
+  storageKey String            @unique
+  visibility ContentVisibility @default(PUBLIC)
+  createdAt  DateTime          @default(now())
+
+  @@index([ticketId, messageId])
+  @@index([uploaderId])
+  @@map("ticket_attachment")
+}
+
+model TicketEvent {
+  id         String            @id @default(cuid())
+  ticketId   String
+  ticket     Ticket            @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  actorId    String?
+  actor      User?             @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  type       TicketEventType
+  visibility ContentVisibility @default(INTERNAL)
+  metadata   Json?
+  createdAt  DateTime          @default(now())
+
+  @@index([ticketId, createdAt])
+  @@index([actorId])
+  @@map("ticket_event")
+}
+
+model TicketEscalation {
+  id             String        @id @default(cuid())
+  ticketId       String
+  ticket         Ticket        @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  actorId        String?
+  actor          User?         @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  fromLevel      SupportLevel
+  toLevel        SupportLevel
+  teamId         String
+  team           SupportTeam   @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  assigneeId     String?
+  assignee       SupportAgent? @relation(fields: [assigneeId], references: [userId], onDelete: Restrict)
+  reason         String        @db.Text
+  automatic      Boolean       @default(false)
+  notifyCustomer Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+
+  @@index([ticketId, createdAt])
+  @@index([actorId])
+  @@index([teamId])
+  @@index([assigneeId])
+  @@map("ticket_escalation")
+}
+
+model TicketSlaPause {
+  id        String    @id @default(cuid())
+  ticketId  String
+  ticket    Ticket    @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  reason    String
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  @@index([ticketId, startedAt])
+  @@map("ticket_sla_pause")
+}
+
+model TicketRating {
+  ticketId  String   @id
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  score     Int      @db.SmallInt
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@map("ticket_rating")
+}
+
+model KnowledgeArticle {
+  id             String            @id @default(cuid())
+  slug           String            @unique
+  title          String
+  body           String            @db.Text
+  categoryId     String
+  category       TicketCategory    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  authorId       String
+  author         User              @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  status         ArticleStatus     @default(DRAFT)
+  visibility     ContentVisibility @default(INTERNAL)
+  keywords       String[]          @default([])
+  readingMinutes Int               @default(1)
+  publishedAt    DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([status, visibility, categoryId])
+  @@index([authorId])
+  @@index([keywords], type: Gin)
+  @@map("knowledge_article")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ticketId  String?
+  ticket    Ticket?          @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  type      NotificationType
+  title     String
+  body      String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt, createdAt])
+  @@index([ticketId])
+  @@map("notification")
+}
+
+model NotificationPreference {
+  userId        String   @id
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailEnabled  Boolean  @default(true)
+  ticketUpdates Boolean  @default(true)
+  slaAlerts     Boolean  @default(true)
+  updatedAt     DateTime @updatedAt
+
+  @@map("notification_preference")
 }
