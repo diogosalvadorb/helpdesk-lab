@@ -28,11 +28,17 @@ type AuthFlow =
 
 export default function AuthenticationScreen({
   initialView = "login",
+  initialNotice,
 }: {
   initialView?: "login" | "register";
+  initialNotice?: string;
 }) {
   const [busy, setBusy] = useState(false);
-  const [flow, setFlow] = useState<AuthFlow>({ view: initialView });
+  const [flow, setFlow] = useState<AuthFlow>(
+    initialView === "login"
+      ? { view: "login", message: initialNotice }
+      : { view: initialView },
+  );
   const view = flow.view;
   const contentRef = useRef<HTMLDivElement>(null);
   const firstView = useRef(true);

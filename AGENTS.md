@@ -19,6 +19,15 @@
 
 ## Interface
 
+- Na área autenticada, componentes exclusivos de um módulo devem ficar em `app/(protected)/<modulo>/_components/`, por exemplo `chamados/_components`, `conhecimento/_components`, `dashboard/_components` e `sla/_components`.
+- Reserve a raiz `app/(protected)/_components/` para componentes compartilhados entre páginas ou pelo layout comum. Se um bloco for usado no dashboard e em outra página, mantenha uma única implementação compartilhada nessa raiz.
+- Mantenha `page.tsx`, `layout.tsx`, `loading.tsx` e `error.tsx` nas pastas de rota apropriadas; não transforme as pastas privadas de componentes em rotas. Ao mover componentes, atualize todos os imports e não duplique implementações.
+- Cada `page.tsx` protegida deve ser um Server Component que obtém o contexto autorizado, consulta as funções de `data/` e retorna a composição dos componentes. Não use apenas um reexport de uma página completa escondida em `_components`.
+- Não crie `app/(protected)/_components/<modulo>/_components/`. A pasta `_components` exclusiva pertence à própria rota, como `app/(protected)/chamados/_components/`. Crie `_columns` na rota somente quando houver definições de colunas exclusivas dela.
+- Use `components/ui/` para primitivas reutilizáveis do shadcn/ui. Componentes do portal compartilhados ficam em `app/(protected)/_components/`; componentes específicos da rota ficam na respectiva pasta privada. Não crie componentes que apenas repassem props sem responsabilidade própria.
+- A sidebar compartilhada deve usar os componentes Sidebar do shadcn/ui, preservando o layout do Doop. A navegação deve usar `Link` do Next.js para rotas reais, indicar a rota ativa e continuar funcionando no mobile e por teclado. Componentes auxiliares de navegação podem ser separados e reutilizados pela sidebar.
+- Reutilize a validação de sessão e autorização centralizada no servidor; não replique regras de acesso em cada página nem transfira essas decisões para a sidebar.
+
 - Consulte os componentes existentes antes de criar novos.
 - Use shadcn/ui para componentes de interface.
 - Use cores dos tokens definidos em app/globals.css.

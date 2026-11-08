@@ -66,7 +66,8 @@ export default function LoginForm({
         toast.success(result.data.message);
       }
 
-      router.replace("/");
+      router.replace("/dashboard");
+      form.resetField("password");
       router.refresh();
     },
     onError: ({ error }) => {
