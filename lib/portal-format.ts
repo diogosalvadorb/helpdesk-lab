@@ -1,4 +1,8 @@
 import type { TicketPriority, TicketStatus } from "@/generated/prisma/client";
+import {
+  measuredCompliance,
+  type ResolutionMeasurement,
+} from "@/lib/ticket-sla";
 
 export const statusLabels: Record<TicketStatus, string> = {
   OPEN: "Aberto",
@@ -79,6 +83,7 @@ export function monthBounds(now: Date) {
 
 export function compliance(
   rows: {
+    resolutionMeasurement?: ResolutionMeasurement | null;
     firstResponseMinutes: number | null;
     resolutionMinutes: number | null;
     slaTarget: {
@@ -87,22 +92,12 @@ export function compliance(
     } | null;
   }[],
 ) {
-  const eligible = rows.filter(
-    (row) =>
-      row.slaTarget &&
-      row.firstResponseMinutes !== null &&
-      row.resolutionMinutes !== null,
-  );
-  const met = eligible.filter(
-    (row) =>
-      row.firstResponseMinutes! <= row.slaTarget!.firstResponseMinutes &&
-      row.resolutionMinutes! <= row.slaTarget!.resolutionMinutes,
-  ).length;
-  return eligible.length ? (met / eligible.length) * 100 : null;
+  return measuredCompliance(rows);
 }
 
 export function slaDisplay(
   ticket: {
+    resolutionMeasurement?: ResolutionMeasurement | null;
     status: TicketStatus;
     firstRespondedAt: Date | null;
     firstResponseDueAt: Date | null;

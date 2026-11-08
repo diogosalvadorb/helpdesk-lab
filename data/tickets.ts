@@ -8,6 +8,7 @@ import {
 import { ticketNumber } from "@/lib/portal-format";
 import { prisma } from "@/lib/prisma";
 import { permittedLevels } from "@/lib/support-access";
+import { makeSlaSnapshot } from "@/lib/ticket-sla";
 import { submissionIdentity } from "@/lib/ticket-submission";
 import {
   type CreateTicketInput,
@@ -191,6 +192,7 @@ export async function persistNewTicket(rawInput: CreateTicketInput) {
               slaPolicy: {
                 include: {
                   targets: { where: { priority: "MEDIUM" } },
+                  escalationRules: { where: { active: true } },
                   calendar: { include: { hours: true, holidays: true } },
                 },
               },
@@ -230,6 +232,7 @@ export async function persistNewTicket(rawInput: CreateTicketInput) {
               status: "OPEN",
               channel: "PORTAL",
               level: category.defaultLevel,
+              createdAt: now,
               // Agent self-service stays inside the agent's existing team scope.
               teamId: agentTeam?.teamId ?? null,
               ...sla,
@@ -241,6 +244,17 @@ export async function persistNewTicket(rawInput: CreateTicketInput) {
                   metadata: {
                     fingerprint: identity.fingerprint,
                     emailStatus: "pending",
+                    ...(contract && target
+                      ? {
+                          slaSnapshot: makeSlaSnapshot(
+                            now,
+                            target,
+                            contract.slaPolicy.calendar,
+                            contract.slaPolicy.escalationRules,
+                            contract.slaPolicy.pauseWhileWaitingCustomer,
+                          ),
+                        }
+                      : {}),
                   },
                 },
               },

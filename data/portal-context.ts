@@ -40,8 +40,13 @@ export const getPortalContext = cache(async () => {
                 status: "ACTIVE",
                 tickets: {
                   some: {
-                    teamId: agent.teamId,
-                    level: { in: permittedLevels(agent.level) },
+                    OR: [
+                      {
+                        teamId: agent.teamId,
+                        level: { in: permittedLevels(agent.level) },
+                      },
+                      { requesterId: user.id, requester: { status: "ACTIVE" } },
+                    ],
                   },
                 },
               },

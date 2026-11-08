@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getTicketConversation } from "@/data/ticket-service";
 
 import { TicketConversation } from "../../_components/ticket-conversation";
+import { TicketLifecycleControls } from "../../_components/ticket-lifecycle-controls";
 
 export default async function TicketPage({
   params,
@@ -20,5 +21,12 @@ export default async function TicketPage({
     Number(query.events || 1),
   );
   if (!ticket) notFound();
-  return <TicketConversation ticket={ticket} />;
+  return (
+    <TicketConversation
+      ticket={ticket}
+      controls={
+        <TicketLifecycleControls ticket={ticket} options={null} mode="portal" />
+      }
+    />
+  );
 }

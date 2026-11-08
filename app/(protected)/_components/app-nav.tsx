@@ -51,16 +51,30 @@ export function AppNav({
             <SidebarMenuItem>
               <SidebarMenuButton
                 render={<Link href="/operacao/filas" />}
-                isActive
-                className="portal-nav-item active"
-                aria-current="page"
+                isActive={!pathname.startsWith("/operacao/sla")}
+                className={`portal-nav-item ${!pathname.startsWith("/operacao/sla") ? "active" : ""}`}
+                aria-current={
+                  !pathname.startsWith("/operacao/sla") ? "page" : undefined
+                }
               >
                 <Ticket aria-hidden="true" />
                 Chamados
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                render={<Link href="/operacao/sla" />}
+                isActive={pathname.startsWith("/operacao/sla")}
+                className={`portal-nav-item ${pathname.startsWith("/operacao/sla") ? "active" : ""}`}
+                aria-current={
+                  pathname.startsWith("/operacao/sla") ? "page" : undefined
+                }
+              >
+                <Clock3 aria-hidden="true" />
+                Painel SLA
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             {[
-              { label: "Painel SLA", icon: Clock3 },
               { label: "Base de conhecimento", icon: BookOpen },
               { label: "Relatórios", icon: ChartNoAxesColumn },
             ].map((item) => (
@@ -223,6 +237,7 @@ export function PortalBreadcrumb() {
     "/conhecimento": "Base de conhecimento",
     "/sla": "Painel SLA",
     "/operacao/filas": "Filas de atendimento",
+    "/operacao/sla": "Painel SLA operacional",
   };
   return (
     <nav className="portal-breadcrumb" aria-label="Localização">
@@ -232,11 +247,13 @@ export function PortalBreadcrumb() {
         {labels[pathname] ||
           (pathname.startsWith("/chamados/") && pathname.endsWith("/enviado")
             ? "Chamado enviado"
-            : pathname.startsWith("/operacao/chamados/")
-              ? "Atendimento do chamado"
-              : pathname.startsWith("/chamados/")
-                ? "Detalhe do chamado"
-                : "Atendimento")}
+            : pathname.startsWith("/chamados/") && pathname.endsWith("/avaliar")
+              ? "Avaliar atendimento"
+              : pathname.startsWith("/operacao/chamados/")
+                ? "Atendimento do chamado"
+                : pathname.startsWith("/chamados/")
+                  ? "Detalhe do chamado"
+                  : "Atendimento")}
       </b>
     </nav>
   );

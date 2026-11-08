@@ -348,6 +348,115 @@
 .portal-new-ticket-grid {
   align-items: start;
 }
+.portal-lifecycle-controls {
+  margin-bottom: 1.5rem;
+}
+.portal-dialog.portal-lifecycle-dialog {
+  max-width: min(35rem, calc(100% - 2rem));
+}
+.portal-lifecycle-dialog [data-slot="dialog-title"] {
+  font-family: var(--font-auth, "Segoe UI", sans-serif);
+  font-size: 1.4375rem;
+}
+.portal-table-wrap:focus-visible {
+  outline: 0.125rem solid var(--auth-primary);
+  outline-offset: 0.25rem;
+}
+.portal-lifecycle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+.portal-lifecycle-actions > p {
+  flex-basis: 100%;
+}
+.portal-rating-card {
+  max-width: 30rem;
+  margin-inline: auto;
+}
+.portal-rating-stars {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 0.5rem 0 1.5rem;
+}
+.portal-rating-stars label {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  color: var(--auth-muted);
+  cursor: pointer;
+}
+.portal-rating-stars svg {
+  width: 1.75rem;
+  height: 1.75rem;
+  stroke-width: 1.25;
+}
+.portal-rating-stars .selected {
+  color: var(--portal-warning);
+}
+.portal-rating-stars .selected svg {
+  fill: var(--portal-warning-background);
+}
+.portal-rating-stars input {
+  accent-color: var(--auth-primary);
+}
+.portal-rating-stars label:focus-within {
+  outline: 0.125rem solid var(--auth-primary);
+  outline-offset: 0.125rem;
+  border-radius: 0.375rem;
+}
+.portal-rating-card .portal-field {
+  margin-top: 1.75rem;
+}
+.portal-rating-card [role="status"] {
+  margin-bottom: 1rem;
+}
+.portal-rating-card .portal-primary-button {
+  margin-top: 1rem;
+}
+.portal-sla-progress {
+  display: block;
+  width: 8rem;
+  height: 0.4375rem;
+  border-radius: 0.4375rem;
+  overflow: hidden;
+  accent-color: var(--auth-primary);
+}
+.portal-sla-progress::-webkit-progress-bar {
+  background: var(--auth-track);
+}
+.portal-sla-progress::-webkit-progress-value {
+  background: var(--auth-primary);
+}
+.portal-sla-metric-value {
+  display: block;
+  font-size: 1.75rem;
+  margin-block: 0.875rem;
+  font-weight: 600;
+}
+.portal-sla-explainer {
+  margin-top: 1.5rem;
+}
+.portal-sla-explainer > p {
+  margin-top: 1rem;
+  line-height: 1.8;
+  font-size: 0.8125rem;
+}
+@media (width < 50.0625rem) {
+  .portal-rating-stars {
+    gap: 0.25rem;
+  }
+  .portal-rating-stars label {
+    padding: 0.25rem;
+  }
+  .portal-rating-stars svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+}
 .portal-conversation-grid {
   align-items: start;
 }

@@ -26,9 +26,14 @@ export function ticketScope(access: TicketAccess): Prisma.TicketWhereInput {
     return access.teamId && access.agentLevel
       ? {
           ...company,
-          teamId: access.teamId,
-          team: { active: true },
-          level: { in: permittedLevels(access.agentLevel) },
+          OR: [
+            {
+              teamId: access.teamId,
+              team: { active: true },
+              level: { in: permittedLevels(access.agentLevel) },
+            },
+            { requesterId: access.userId, requester: { status: "ACTIVE" } },
+          ],
         }
       : { id: { in: [] } };
   if (!access.membershipRole) return { id: { in: [] } };

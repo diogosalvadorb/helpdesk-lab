@@ -3,11 +3,6 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import { Prisma, type TicketStatus } from "@/generated/prisma/client";
-import {
-  addWorkingMilliseconds,
-  CalendarConfigurationError,
-  workingMillisecondsBetween,
-} from "@/lib/business-calendar";
 import { openStatuses, slaDisplay, statusLabels } from "@/lib/portal-format";
 import { prisma } from "@/lib/prisma";
 import {
@@ -15,6 +10,7 @@ import {
   permittedLevels,
   supportLevels,
 } from "@/lib/support-access";
+import { measurementFromEvents, snapshotFromEvents } from "@/lib/ticket-sla";
 import {
   queueFilterSchema,
   type ReplyInput,
@@ -25,22 +21,20 @@ import {
 
 import { getAuthenticatedUser } from "./authenticated-user";
 import { getPortalContext } from "./portal-context";
-
-export class SupportInputError extends Error {}
-
-const userSelection = {
-  id: true,
-  role: true,
-  emailVerified: true,
-  supportAgent: {
-    select: {
-      active: true,
-      teamId: true,
-      level: true,
-      team: { select: { active: true } },
-    },
-  },
-} satisfies Prisma.UserSelect;
+import {
+  resumePause,
+  serviceTicketInclude,
+  SupportInputError,
+  transaction,
+  userSelection,
+} from "./service-store";
+export {
+  resumePause,
+  serviceTicketInclude,
+  transaction as serviceTransaction,
+  userSelection as serviceUserSelection,
+  SupportInputError,
+};
 
 export async function getOperationContext() {
   const user = await getAuthenticatedUser();
@@ -48,85 +42,10 @@ export async function getOperationContext() {
   return scope ? { user, scope } : null;
 }
 
-async function transaction<T>(
-  work: (tx: Prisma.TransactionClient) => Promise<T>,
-): Promise<T> {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      return await prisma.$transaction(work, {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        timeout: 20000,
-      });
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        ["P2034", "P2002"].includes(error.code) &&
-        attempt < 2
-      )
-        continue;
-      if (error instanceof CalendarConfigurationError)
-        throw new SupportInputError(error.message);
-      throw error;
-    }
-  }
-}
 const hash = (parts: unknown[]) =>
   createHash("sha256").update(JSON.stringify(parts)).digest("hex");
 const metadataObject = (value: Prisma.JsonValue | null) =>
   value && typeof value === "object" && !Array.isArray(value) ? value : {};
-
-const serviceTicketInclude = {
-  slaPauses: { where: { endedAt: null } },
-  contract: {
-    include: {
-      slaPolicy: {
-        include: { calendar: { include: { hours: true, holidays: true } } },
-      },
-    },
-  },
-} satisfies Prisma.TicketInclude;
-type ServiceTicket = Prisma.TicketGetPayload<{
-  include: typeof serviceTicketInclude;
-}>;
-
-async function resumePause(
-  tx: Prisma.TransactionClient,
-  ticket: ServiceTicket,
-  now: Date,
-  actorId: string,
-) {
-  if (!ticket.slaPauses.length) return {};
-  if (ticket.slaPauses.length !== 1 || !ticket.contract)
-    throw new SupportInputError(
-      "As pausas deste chamado precisam de revisão administrativa.",
-    );
-  const pause = ticket.slaPauses[0];
-  const calendar = ticket.contract.slaPolicy.calendar;
-  const elapsed = workingMillisecondsBetween(pause.startedAt, now, calendar);
-  const deadlines = {
-    resolutionDueAt: ticket.resolutionDueAt
-      ? addWorkingMilliseconds(ticket.resolutionDueAt, elapsed, calendar)
-      : null,
-    firstResponseDueAt:
-      ticket.firstResponseDueAt && !ticket.firstRespondedAt
-        ? addWorkingMilliseconds(ticket.firstResponseDueAt, elapsed, calendar)
-        : ticket.firstResponseDueAt,
-  };
-  await tx.ticketSlaPause.update({
-    where: { id: pause.id },
-    data: { endedAt: now },
-  });
-  await tx.ticketEvent.create({
-    data: {
-      ticketId: ticket.id,
-      actorId,
-      type: "SLA_RESUMED",
-      visibility: "PUBLIC",
-      createdAt: now,
-    },
-  });
-  return deadlines;
-}
 
 export async function persistTicketReply(raw: ReplyInput) {
   const input = replySchema.parse(raw);
@@ -180,7 +99,17 @@ export async function persistTicketReply(raw: ReplyInput) {
             ...(member.role === "REQUESTER" ? { requesterId: user.id } : {}),
           },
           ...(user.role === "AGENT"
-            ? [operationScope(user) ?? { id: { in: [] } }]
+            ? [
+                {
+                  OR: [
+                    operationScope(user) ?? { id: { in: [] } },
+                    {
+                      requesterId: user.id,
+                      requester: { status: "ACTIVE" as const },
+                    },
+                  ],
+                },
+              ]
             : []),
         ],
       };
@@ -212,7 +141,7 @@ export async function persistTicketReply(raw: ReplyInput) {
         ticketId: ticket.id,
       };
     }
-    if (["CLOSED", "CANCELED"].includes(ticket.status))
+    if (["RESOLVED", "CLOSED", "CANCELED"].includes(ticket.status))
       throw new SupportInputError("Este chamado não aceita novas mensagens.");
     const now = new Date();
     const supportReply =
@@ -470,7 +399,8 @@ export async function persistServiceAction(raw: ServiceActionInput) {
         updates.status = "WAITING_CUSTOMER";
         details.reason = input.reason!;
         if (
-          ticket.contract?.slaPolicy.pauseWhileWaitingCustomer &&
+          (snapshotFromEvents(ticket.events)?.pauseWhileWaitingCustomer ??
+            ticket.contract?.slaPolicy.pauseWhileWaitingCustomer) &&
           (ticket.firstResponseDueAt || ticket.resolutionDueAt)
         ) {
           await tx.ticketSlaPause.create({
@@ -589,6 +519,13 @@ export async function getTicketConversation(
       department: { select: { name: true } },
       category: { select: { name: true } },
       requester: { select: { userId: true, user: { select: { name: true } } } },
+      events: {
+        where: { type: "RESOLVED" },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: 1,
+        select: { metadata: true },
+      },
+      rating: { select: { score: true } },
       assignee: { select: { user: { select: { name: true } } } },
       team: { select: { name: true } },
     },
@@ -666,9 +603,21 @@ export async function getTicketConversation(
     firstResponseDueAt: ticket.firstResponseDueAt?.toISOString() ?? null,
     resolutionDueAt: ticket.resolutionDueAt?.toISOString() ?? null,
     firstRespondedAt: ticket.firstRespondedAt?.toISOString() ?? null,
-    sla: slaDisplay(ticket, new Date()),
+    sla: slaDisplay(
+      {
+        ...ticket,
+        resolutionMeasurement: measurementFromEvents(ticket.events),
+      },
+      new Date(),
+    ),
+    isRequester: Boolean(
+      portal &&
+      membership?.status === "ACTIVE" &&
+      portal.user.id === ticket.requester.userId,
+    ),
+    ratingScore: ticket.rating?.score ?? null,
     canReply: Boolean(
-      canReply && !["CLOSED", "CANCELED"].includes(ticket.status),
+      canReply && !["RESOLVED", "CLOSED", "CANCELED"].includes(ticket.status),
     ),
     mode,
     page: p,

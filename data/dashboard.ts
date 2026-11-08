@@ -8,6 +8,7 @@ import {
   slaDisplay,
 } from "@/lib/portal-format";
 import { prisma } from "@/lib/prisma";
+import { measurementFromEvents } from "@/lib/ticket-sla";
 
 import { getPortalContext } from "./portal-context";
 
@@ -47,6 +48,12 @@ const ticketSelect = {
   firstResponseMinutes: true,
   resolutionMinutes: true,
   department: { select: { name: true } },
+  events: {
+    where: { type: "RESOLVED" },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: 1,
+    select: { metadata: true },
+  },
   slaTarget: {
     select: { firstResponseMinutes: true, resolutionMinutes: true },
   },
@@ -80,7 +87,11 @@ export async function getPortalTickets(limit = 6, id?: string) {
       ...m,
       createdAt: m.createdAt.toISOString(),
     })),
-    sla: slaDisplay(row, now),
+    sla: slaDisplay(
+      { ...row, resolutionMeasurement: measurementFromEvents(row.events) },
+      now,
+    ),
+    events: undefined,
     firstRespondedAt: undefined,
     firstResponseDueAt: undefined,
     resolutionDueAt: undefined,
@@ -213,6 +224,12 @@ export async function getDashboard() {
       select: {
         firstResponseMinutes: true,
         resolutionMinutes: true,
+        events: {
+          where: { type: "RESOLVED" },
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          take: 1,
+          select: { metadata: true },
+        },
         slaTarget: {
           select: { firstResponseMinutes: true, resolutionMinutes: true },
         },
@@ -231,14 +248,22 @@ export async function getDashboard() {
   const pendingCount = await prisma.ticket.count({
     where: scoped({ status: "WAITING_CUSTOMER" }),
   });
+  const measuredRows = completedRows.map((row) => ({
+    ...row,
+    resolutionMeasurement: measurementFromEvents(row.events),
+  }));
   return {
     now: now.toISOString(),
     open,
     inProgress,
     resolved,
     previousResolved,
-    compliance: compliance(completedRows),
-    slaSample: completedRows.length,
+    compliance: compliance(measuredRows),
+    slaSample: measuredRows.filter(
+      (row) =>
+        row.resolutionMeasurement &&
+        row.resolutionMeasurement.firstResponseElapsedMs !== null,
+    ).length,
     tickets,
     pendingCount,
     pending: pending.map((row) => ({
@@ -248,7 +273,11 @@ export async function getDashboard() {
         ...m,
         createdAt: m.createdAt.toISOString(),
       })),
-      sla: slaDisplay(row, now),
+      sla: slaDisplay(
+        { ...row, resolutionMeasurement: measurementFromEvents(row.events) },
+        now,
+      ),
+      events: undefined,
       firstRespondedAt: undefined,
       firstResponseDueAt: undefined,
       resolutionDueAt: undefined,

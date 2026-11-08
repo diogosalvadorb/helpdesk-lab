@@ -19,7 +19,8 @@ export default async function ServiceQueuesPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const data = await getServiceQueue(await searchParams);
+  const query = await searchParams;
+  const data = await getServiceQueue(query);
   if (!data) notFound();
   const { filters } = data;
   const pageHref = (page: number) => {
@@ -30,6 +31,12 @@ export default async function ServiceQueuesPage({
   };
   return (
     <>
+      {query.notice === "email-unavailable" && (
+        <p role="status" className="portal-muted">
+          Encaminhamento salvo. Não foi possível enviar a confirmação por
+          e-mail; a atualização está disponível no portal.
+        </p>
+      )}
       <div className="portal-heading">
         <div>
           <p className="portal-eyebrow">Central de atendimento</p>

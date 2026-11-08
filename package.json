@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "db:seed": "prisma db seed --config prisma7.config.ts"
+    "db:seed": "prisma db seed --config prisma7.config.ts",
+    "sla:evaluate": "node --conditions=react-server --import tsx scripts/evaluate-sla.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
