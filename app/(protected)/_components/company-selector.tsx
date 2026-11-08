@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAction } from "next-safe-action/hooks";
 import { useId } from "react";
 
@@ -14,12 +14,21 @@ export function CompanySelector({
   selected: string | null;
 }) {
   const selectorId = useId();
+  const pathname = usePathname();
   const router = useRouter();
   const action = useAction(selectCompany, {
     onSuccess({ data }) {
       if (data?.ok) router.refresh();
     },
   });
+  if (pathname.startsWith("/operacao/"))
+    return (
+      <div className="portal-workspace">
+        <b>Central de atendimento</b>
+        <span>Workspace de suporte</span>
+        <span>Empresas e equipes autorizadas</span>
+      </div>
+    );
   return (
     <div className="portal-workspace">
       <label htmlFor={selectorId} className="sr-only">

@@ -25,6 +25,7 @@ export const getAuthenticatedUser = cache(async () => {
         select: {
           active: true,
           teamId: true,
+          level: true,
           team: { select: { active: true } },
         },
       },

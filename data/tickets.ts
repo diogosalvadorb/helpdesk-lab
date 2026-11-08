@@ -7,6 +7,7 @@ import {
 } from "@/lib/business-calendar";
 import { ticketNumber } from "@/lib/portal-format";
 import { prisma } from "@/lib/prisma";
+import { permittedLevels } from "@/lib/support-access";
 import { submissionIdentity } from "@/lib/ticket-submission";
 import {
   type CreateTicketInput,
@@ -43,7 +44,16 @@ export async function getTicketCreationOptions() {
       orderBy: { name: "asc" },
     }),
     prisma.ticketCategory.findMany({
-      where: { active: true },
+      where: {
+        active: true,
+        ...(context.user.role === "AGENT" && context.user.supportAgent
+          ? {
+              defaultLevel: {
+                in: permittedLevels(context.user.supportAgent.level),
+              },
+            }
+          : {}),
+      },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
@@ -81,6 +91,7 @@ export async function persistNewTicket(rawInput: CreateTicketInput) {
                 select: {
                   active: true,
                   teamId: true,
+                  level: true,
                   team: { select: { active: true } },
                 },
               },
@@ -158,6 +169,13 @@ export async function persistNewTicket(rawInput: CreateTicketInput) {
           if (!department || !category)
             throw new TicketInputError(
               "Departamento ou categoria indisponível. Recarregue as opções e revise os dados.",
+            );
+          if (
+            agentTeam &&
+            !permittedLevels(agentTeam.level).includes(category.defaultLevel)
+          )
+            throw new TicketInputError(
+              "A categoria exige um nível de suporte fora do seu perfil.",
             );
           const now = new Date();
           const contract = await tx.contract.findFirst({

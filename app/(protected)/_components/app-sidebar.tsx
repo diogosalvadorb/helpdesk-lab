@@ -9,7 +9,7 @@ import type { PortalContext } from "@/data/portal-context";
 
 import { AppNav } from "./app-nav";
 import { CompanySelector } from "./company-selector";
-import { FeatureNotice } from "./portal-dialog";
+import { PortalLink } from "./portal-link";
 import { UserMenu } from "./user-menu";
 
 export function AppSidebar({
@@ -19,6 +19,13 @@ export function AppSidebar({
   context: PortalContext;
   openCount: number;
 }) {
+  const operationAvailable =
+    context.user.role === "ADMIN" ||
+    Boolean(
+      context.user.role === "AGENT" &&
+      context.user.supportAgent?.active &&
+      context.user.supportAgent.team.active,
+    );
   return (
     <Sidebar className="portal-sidebar-content">
       <SidebarHeader>
@@ -31,7 +38,7 @@ export function AppSidebar({
         />
       </SidebarHeader>
       <SidebarContent>
-        <AppNav openCount={openCount} />
+        <AppNav openCount={openCount} operationAvailable={operationAvailable} />
         <div className="portal-support">
           <b>Estamos por perto.</b>
           <p>
@@ -39,8 +46,10 @@ export function AppSidebar({
             suporte.
           </p>
           <AuthInfo topic="help">Precisa de ajuda? ↗</AuthInfo>
-          {context.user.role !== "CLIENT" && (
-            <FeatureNotice>Central de operações ↗</FeatureNotice>
+          {operationAvailable && (
+            <PortalLink href="/operacao/filas">
+              Central de operações ↗
+            </PortalLink>
           )}
         </div>
       </SidebarContent>

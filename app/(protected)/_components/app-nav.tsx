@@ -23,11 +23,87 @@ import {
 
 import { FeatureNotice } from "./portal-dialog";
 
-export function AppNav({ openCount }: { openCount: number }) {
+export function AppNav({
+  openCount,
+  operationAvailable = false,
+}: {
+  openCount: number;
+  operationAvailable?: boolean;
+}) {
   const pathname = usePathname();
   const isActive = (href: string) =>
     (pathname === href || pathname.startsWith(`${href}/`)) &&
     !(href === "/chamados" && pathname === "/chamados/novo");
+  if (operationAvailable && pathname.startsWith("/operacao/"))
+    return (
+      <nav aria-label="Navegação da operação">
+        <SidebarGroup>
+          <SidebarGroupLabel className="portal-nav-label">
+            Atendimento
+          </SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <FeatureNotice className="portal-nav-item">
+                <House aria-hidden="true" />
+                Visão geral
+              </FeatureNotice>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                render={<Link href="/operacao/filas" />}
+                isActive
+                className="portal-nav-item active"
+                aria-current="page"
+              >
+                <Ticket aria-hidden="true" />
+                Chamados
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            {[
+              { label: "Painel SLA", icon: Clock3 },
+              { label: "Base de conhecimento", icon: BookOpen },
+              { label: "Relatórios", icon: ChartNoAxesColumn },
+            ].map((item) => (
+              <SidebarMenuItem key={item.label}>
+                <FeatureNotice className="portal-nav-item">
+                  <item.icon aria-hidden="true" />
+                  {item.label}
+                </FeatureNotice>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel className="portal-nav-label">
+            Organização
+          </SidebarGroupLabel>
+          <SidebarMenu>
+            {[
+              { label: "Empresas clientes", icon: Building2 },
+              { label: "Departamentos", icon: Building2 },
+              { label: "Equipe de suporte", icon: House },
+              { label: "Configurações", icon: Settings },
+            ].map((item) => (
+              <SidebarMenuItem key={item.label}>
+                <FeatureNotice className="portal-nav-item">
+                  <item.icon aria-hidden="true" />
+                  {item.label}
+                </FeatureNotice>
+              </SidebarMenuItem>
+            ))}
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                render={<Link href="/dashboard" />}
+                className="portal-nav-item"
+              >
+                <House aria-hidden="true" />
+                Acessar portal do cliente
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+      </nav>
+    );
   return (
     <nav aria-label="Navegação do portal">
       <SidebarGroup>
@@ -112,6 +188,28 @@ export function AppNav({ openCount }: { openCount: number }) {
           ))}
         </SidebarMenu>
       </SidebarGroup>
+      {operationAvailable && (
+        <SidebarGroup>
+          <SidebarGroupLabel className="portal-nav-label">
+            Central de atendimento
+          </SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                render={<Link href="/operacao/filas" />}
+                isActive={pathname.startsWith("/operacao/")}
+                className={`portal-nav-item ${pathname.startsWith("/operacao/") ? "active" : ""}`}
+                aria-current={
+                  pathname.startsWith("/operacao/") ? "page" : undefined
+                }
+              >
+                <Ticket aria-hidden="true" />
+                Filas de atendimento
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+      )}
     </nav>
   );
 }
@@ -124,15 +222,21 @@ export function PortalBreadcrumb() {
     "/chamados": "Meus chamados",
     "/conhecimento": "Base de conhecimento",
     "/sla": "Painel SLA",
+    "/operacao/filas": "Filas de atendimento",
   };
   return (
     <nav className="portal-breadcrumb" aria-label="Localização">
-      Portal do cliente <span aria-hidden="true">/</span>
+      {pathname.startsWith("/operacao/") ? "Workspace" : "Portal do cliente"}{" "}
+      <span aria-hidden="true">/</span>
       <b>
         {labels[pathname] ||
           (pathname.startsWith("/chamados/") && pathname.endsWith("/enviado")
             ? "Chamado enviado"
-            : "Atendimento")}
+            : pathname.startsWith("/operacao/chamados/")
+              ? "Atendimento do chamado"
+              : pathname.startsWith("/chamados/")
+                ? "Detalhe do chamado"
+                : "Atendimento")}
       </b>
     </nav>
   );

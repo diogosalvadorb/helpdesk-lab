@@ -5,6 +5,7 @@ import { cache } from "react";
 
 import { ticketScope } from "@/lib/portal-access";
 import { prisma } from "@/lib/prisma";
+import { permittedLevels } from "@/lib/support-access";
 
 import { getAuthenticatedUser } from "./authenticated-user";
 
@@ -37,7 +38,12 @@ export const getPortalContext = cache(async () => {
           ? await prisma.company.findMany({
               where: {
                 status: "ACTIVE",
-                tickets: { some: { teamId: agent.teamId } },
+                tickets: {
+                  some: {
+                    teamId: agent.teamId,
+                    level: { in: permittedLevels(agent.level) },
+                  },
+                },
               },
               select: { id: true, name: true },
               orderBy: { name: "asc" },
@@ -57,6 +63,7 @@ export const getPortalContext = cache(async () => {
     companyId: company?.id || null,
     membershipRole: membership?.role,
     teamId: agent?.teamId,
+    agentLevel: agent?.level,
   };
   const scope = ticketScope(access);
   const roleLabel =

@@ -2,7 +2,6 @@ import { Check } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { Card } from "@/components/ui/card";
-import { getPortalTickets } from "@/data/dashboard";
 import { getCreatedTicket } from "@/data/tickets";
 import { dateTime, statusLabels } from "@/lib/portal-format";
 
@@ -17,7 +16,6 @@ export default async function TicketSentPage({
   const { ticketId } = await params;
   const ticket = await getCreatedTicket(ticketId);
   if (!ticket) notFound();
-  const detail = (await getPortalTickets(1, ticketId))[0];
   return (
     <section className="portal-ticket-created">
       <div className="portal-success-icon">
@@ -69,7 +67,7 @@ export default async function TicketSentPage({
             : "Seu chamado está salvo. O envio da confirmação por e-mail ainda não foi confirmado."}
       </p>
       <div className="portal-confirmation-actions">
-        {detail && <TicketDetail ticket={detail} label="Ver detalhes" />}
+        <TicketDetail ticket={ticket} label="Ver detalhes" />
         <PortalLink href="/chamados" className="portal-outline-button">
           Ver meus chamados
         </PortalLink>

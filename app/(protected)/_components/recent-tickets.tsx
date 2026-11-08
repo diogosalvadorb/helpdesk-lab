@@ -10,48 +10,24 @@ import {
 } from "@/components/ui/table";
 import type { PortalTicket } from "@/data/dashboard";
 import {
-  dateTime,
   priorityLabels,
   statusLabels,
   ticketNumber,
 } from "@/lib/portal-format";
 
-import { FeatureNotice, PortalDialog } from "./portal-dialog";
 import { PortalLink } from "./portal-link";
 
 export function TicketDetail({
   ticket,
   label,
 }: {
-  ticket: PortalTicket;
+  ticket: Pick<PortalTicket, "id" | "subject">;
   label?: string;
 }) {
   return (
-    <PortalDialog
-      className="portal-ticket-link"
-      label={label || ticket.subject}
-      title={ticket.subject}
-      description={`${ticketNumber(ticket.number)} · ${ticket.department.name} · ${statusLabels[ticket.status]}`}
-    >
-      <p className="portal-description">{ticket.description}</p>
-      <div className="portal-ticket-messages">
-        {ticket.messages
-          .slice()
-          .reverse()
-          .map((message) => (
-            <article key={message.id}>
-              <b>{message.author.name}</b>
-              <time dateTime={message.createdAt}>
-                {dateTime(message.createdAt)}
-              </time>
-              <p>{message.body}</p>
-            </article>
-          ))}
-      </div>
-      <FeatureNotice className="portal-primary-button">
-        Responder ao atendimento
-      </FeatureNotice>
-    </PortalDialog>
+    <PortalLink href={`/chamados/${ticket.id}`} className="portal-ticket-link">
+      {label || ticket.subject}
+    </PortalLink>
   );
 }
 export function RecentTickets({
