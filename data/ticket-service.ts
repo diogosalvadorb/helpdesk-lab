@@ -57,7 +57,7 @@ export async function persistTicketReply(raw: ReplyInput) {
       where: { id: context.user.id },
       select: userSelection,
     });
-    if (!user?.emailVerified)
+    if (!user?.emailVerified || !user.active)
       throw new SupportInputError("Acesso indisponível. Entre novamente.");
     if (user.role !== context.user.role)
       throw new SupportInputError(
@@ -205,28 +205,30 @@ export async function persistTicketReply(raw: ReplyInput) {
             preferences: { select: { emailEnabled: true } },
           },
         });
-        const authorizedRecipient = supportReply
-          ? Boolean(
-              await tx.companyMember.findFirst({
-                where: {
-                  companyId: ticket.companyId,
-                  userId: recipientId,
-                  status: "ACTIVE",
-                },
-                select: { userId: true },
-              }),
-            )
-          : Boolean(
-              recipient &&
-              (recipient.role === "ADMIN" ||
-                (recipient.role === "AGENT" &&
-                  recipient.supportAgent?.active &&
-                  recipient.supportAgent.team.active &&
-                  recipient.supportAgent.teamId === ticket.teamId &&
-                  permittedLevels(recipient.supportAgent.level).includes(
-                    ticket.level,
-                  ))),
-            );
+        const authorizedRecipient =
+          Boolean(recipient?.active) &&
+          (supportReply
+            ? Boolean(
+                await tx.companyMember.findFirst({
+                  where: {
+                    companyId: ticket.companyId,
+                    userId: recipientId,
+                    status: "ACTIVE",
+                  },
+                  select: { userId: true },
+                }),
+              )
+            : Boolean(
+                recipient &&
+                (recipient.role === "ADMIN" ||
+                  (recipient.role === "AGENT" &&
+                    recipient.supportAgent?.active &&
+                    recipient.supportAgent.team.active &&
+                    recipient.supportAgent.teamId === ticket.teamId &&
+                    permittedLevels(recipient.supportAgent.level).includes(
+                      ticket.level,
+                    ))),
+              ));
         if (authorizedRecipient)
           await tx.notification.create({
             data: {
@@ -271,7 +273,8 @@ export async function persistServiceAction(raw: ServiceActionInput) {
       where: { id: authenticated.id },
       select: userSelection,
     });
-    const scope = user?.emailVerified ? operationScope(user) : null;
+    const scope =
+      user?.emailVerified && user.active ? operationScope(user) : null;
     if (!user || !scope)
       throw new SupportInputError("Você não tem permissão para esta operação.");
     const ticket = await tx.ticket.findFirst({
@@ -344,7 +347,7 @@ export async function persistServiceAction(raw: ServiceActionInput) {
           teamId: ticket.teamId,
           active: true,
           team: { active: true },
-          user: { role: "AGENT", emailVerified: true },
+          user: { role: "AGENT", emailVerified: true, active: true },
         },
         select: { userId: true, level: true, maxActiveTickets: true },
       });
@@ -670,7 +673,7 @@ export async function getServiceOptions(ticketId: string) {
             active: true,
             teamId: ticket.teamId,
             team: { active: true },
-            user: { role: "AGENT", emailVerified: true },
+            user: { role: "AGENT", emailVerified: true, active: true },
           },
           select: {
             userId: true,

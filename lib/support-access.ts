@@ -5,6 +5,7 @@ export function permittedLevels(level: SupportLevel) {
   return supportLevels.slice(0, supportLevels.indexOf(level) + 1);
 }
 export type SupportIdentity = {
+  active?: boolean;
   role: string;
   supportAgent: {
     active: boolean;
@@ -16,6 +17,7 @@ export type SupportIdentity = {
 export function operationScope(
   user: SupportIdentity,
 ): Prisma.TicketWhereInput | null {
+  if (user.active === false) return null;
   if (user.role === "ADMIN") return { company: { status: "ACTIVE" } };
   const agent = user.supportAgent;
   if (user.role !== "AGENT" || !agent?.active || !agent.team.active)

@@ -84,6 +84,10 @@ export const getPortalContext = cache(async () => {
     companies,
     company,
     roleLabel,
+    canManageDepartments:
+      user.role === "ADMIN" ||
+      membership?.role === "MANAGER" ||
+      membership?.role === "ADMIN",
     scope,
     invalidSelection: Boolean(requested && !company),
   };

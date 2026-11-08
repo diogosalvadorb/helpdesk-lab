@@ -21,6 +21,7 @@ export const getAuthenticatedUser = cache(async () => {
       name: true,
       role: true,
       emailVerified: true,
+      active: true,
       supportAgent: {
         select: {
           active: true,
@@ -31,6 +32,7 @@ export const getAuthenticatedUser = cache(async () => {
       },
     },
   });
-  if (!user || !user.emailVerified) redirect("/authentication?view=confirm");
+  if (!user?.active) redirect("/authentication");
+  if (!user.emailVerified) redirect("/authentication?view=confirm");
   return user;
 });

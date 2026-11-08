@@ -87,6 +87,7 @@ export async function persistNewTicket(rawInput: CreateTicketInput) {
             select: {
               email: true,
               emailVerified: true,
+              active: true,
               role: true,
               supportAgent: {
                 select: {
@@ -107,7 +108,7 @@ export async function persistNewTicket(rawInput: CreateTicketInput) {
             },
             select: { userId: true },
           });
-          if (!user?.emailVerified || !membership)
+          if (!user?.emailVerified || !user.active || !membership)
             throw new TicketInputError(
               "É necessário um vínculo ativo com esta empresa para abrir um chamado.",
             );

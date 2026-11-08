@@ -13,6 +13,7 @@ export const userSelection = {
   id: true,
   role: true,
   emailVerified: true,
+  active: true,
   supportAgent: {
     select: {
       active: true,

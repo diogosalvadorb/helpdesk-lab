@@ -38,7 +38,12 @@ export function AppSidebar({
         />
       </SidebarHeader>
       <SidebarContent>
-        <AppNav openCount={openCount} operationAvailable={operationAvailable} />
+        <AppNav
+          openCount={openCount}
+          operationAvailable={operationAvailable}
+          adminAvailable={context.user.role === "ADMIN"}
+          departmentsAvailable={context.canManageDepartments}
+        />
         <div className="portal-support">
           <b>Estamos por perto.</b>
           <p>

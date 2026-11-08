@@ -52,7 +52,7 @@ export async function persistLifecycle(raw: LifecycleInput) {
       where: { id: context.user.id },
       select: serviceUserSelection,
     });
-    if (!user?.emailVerified || user.role !== context.user.role)
+    if (!user?.emailVerified || !user.active || user.role !== context.user.role)
       throw new SupportInputError("Suas permissões mudaram. Entre novamente.");
     const operation = operationScope(user);
     const supportMutation =
@@ -331,6 +331,7 @@ export async function persistLifecycle(raw: LifecycleInput) {
       (input.operation !== "escalate" || input.notifyCustomer) &&
       ticket.requester.status === "ACTIVE" &&
       ticket.requester.user.emailVerified &&
+      ticket.requester.user.active &&
       ticket.requester.user.preferences?.emailEnabled !== false &&
       ticket.requesterId !== user.id
         ? ticket.requester.user.email
@@ -366,7 +367,10 @@ export async function getLifecycleOptions(ticketId: string) {
       id: true,
       name: true,
       agents: {
-        where: { active: true, user: { role: "AGENT", emailVerified: true } },
+        where: {
+          active: true,
+          user: { role: "AGENT", emailVerified: true, active: true },
+        },
         select: { userId: true, level: true, user: { select: { name: true } } },
       },
     },
@@ -418,7 +422,7 @@ export async function persistTicketRating(raw: RatingInput) {
       where: { id: context.user.id },
       select: serviceUserSelection,
     });
-    if (!user?.emailVerified)
+    if (!user?.emailVerified || !user.active)
       throw new SupportInputError("Acesso indisponível.");
     const ticket = await tx.ticket.findFirst({
       where: {

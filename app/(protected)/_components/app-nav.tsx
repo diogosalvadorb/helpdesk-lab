@@ -26,9 +26,13 @@ import { FeatureNotice } from "./portal-dialog";
 export function AppNav({
   openCount,
   operationAvailable = false,
+  adminAvailable = false,
+  departmentsAvailable = false,
 }: {
   openCount: number;
   operationAvailable?: boolean;
+  adminAvailable?: boolean;
+  departmentsAvailable?: boolean;
 }) {
   const pathname = usePathname();
   const isActive = (href: string) =>
@@ -51,10 +55,16 @@ export function AppNav({
             <SidebarMenuItem>
               <SidebarMenuButton
                 render={<Link href="/operacao/filas" />}
-                isActive={!pathname.startsWith("/operacao/sla")}
-                className={`portal-nav-item ${!pathname.startsWith("/operacao/sla") ? "active" : ""}`}
+                isActive={
+                  pathname.startsWith("/operacao/filas") ||
+                  pathname.startsWith("/operacao/chamados/")
+                }
+                className={`portal-nav-item ${pathname.startsWith("/operacao/filas") || pathname.startsWith("/operacao/chamados/") ? "active" : ""}`}
                 aria-current={
-                  !pathname.startsWith("/operacao/sla") ? "page" : undefined
+                  pathname.startsWith("/operacao/filas") ||
+                  pathname.startsWith("/operacao/chamados/")
+                    ? "page"
+                    : undefined
                 }
               >
                 <Ticket aria-hidden="true" />
@@ -64,11 +74,9 @@ export function AppNav({
             <SidebarMenuItem>
               <SidebarMenuButton
                 render={<Link href="/operacao/sla" />}
-                isActive={pathname.startsWith("/operacao/sla")}
-                className={`portal-nav-item ${pathname.startsWith("/operacao/sla") ? "active" : ""}`}
-                aria-current={
-                  pathname.startsWith("/operacao/sla") ? "page" : undefined
-                }
+                isActive={pathname === "/operacao/sla"}
+                className={`portal-nav-item ${pathname === "/operacao/sla" ? "active" : ""}`}
+                aria-current={pathname === "/operacao/sla" ? "page" : undefined}
               >
                 <Clock3 aria-hidden="true" />
                 Painel SLA
@@ -92,19 +100,51 @@ export function AppNav({
             Organização
           </SidebarGroupLabel>
           <SidebarMenu>
-            {[
-              { label: "Empresas clientes", icon: Building2 },
-              { label: "Departamentos", icon: Building2 },
-              { label: "Equipe de suporte", icon: House },
-              { label: "Configurações", icon: Settings },
-            ].map((item) => (
-              <SidebarMenuItem key={item.label}>
-                <FeatureNotice className="portal-nav-item">
-                  <item.icon aria-hidden="true" />
-                  {item.label}
-                </FeatureNotice>
-              </SidebarMenuItem>
-            ))}
+            {adminAvailable &&
+              [
+                {
+                  href: "/operacao/empresas",
+                  label: "Empresas clientes",
+                  icon: Building2,
+                },
+                {
+                  href: "/operacao/departamentos",
+                  label: "Departamentos",
+                  icon: Building2,
+                },
+                {
+                  href: "/operacao/equipe",
+                  label: "Equipe de suporte",
+                  icon: House,
+                },
+                {
+                  href: "/operacao/contratos",
+                  label: "Contratos",
+                  icon: Building2,
+                },
+                {
+                  href: "/operacao/sla/politicas",
+                  label: "Políticas de SLA",
+                  icon: Clock3,
+                },
+                {
+                  href: "/operacao/sla/calendarios",
+                  label: "Calendários",
+                  icon: Clock3,
+                },
+              ].map((item) => (
+                <SidebarMenuItem key={item.label}>
+                  <SidebarMenuButton
+                    render={<Link href={item.href} />}
+                    isActive={isActive(item.href)}
+                    className={`portal-nav-item ${isActive(item.href) ? "active" : ""}`}
+                    aria-current={isActive(item.href) ? "page" : undefined}
+                  >
+                    <item.icon aria-hidden="true" />
+                    {item.label}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             <SidebarMenuItem>
               <SidebarMenuButton
                 render={<Link href="/dashboard" />}
@@ -190,7 +230,6 @@ export function AppNav({
           </SidebarMenuItem>
           {[
             { label: "Relatórios", icon: ChartNoAxesColumn },
-            { label: "Departamentos", icon: Building2 },
             { label: "Configurações", icon: Settings },
           ].map((item) => (
             <SidebarMenuItem key={item.label}>
@@ -200,6 +239,19 @@ export function AppNav({
               </FeatureNotice>
             </SidebarMenuItem>
           ))}
+          {departmentsAvailable && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                render={<Link href="/departamentos" />}
+                isActive={isActive("/departamentos")}
+                className={`portal-nav-item ${isActive("/departamentos") ? "active" : ""}`}
+                aria-current={isActive("/departamentos") ? "page" : undefined}
+              >
+                <Building2 aria-hidden="true" />
+                Departamentos
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
         </SidebarMenu>
       </SidebarGroup>
       {operationAvailable && (
@@ -238,6 +290,13 @@ export function PortalBreadcrumb() {
     "/sla": "Painel SLA",
     "/operacao/filas": "Filas de atendimento",
     "/operacao/sla": "Painel SLA operacional",
+    "/operacao/empresas": "Empresas clientes",
+    "/operacao/departamentos": "Departamentos",
+    "/operacao/equipe": "Equipe de suporte",
+    "/operacao/contratos": "Contratos",
+    "/operacao/sla/politicas": "Políticas de SLA",
+    "/operacao/sla/calendarios": "Calendários",
+    "/departamentos": "Departamentos",
   };
   return (
     <nav className="portal-breadcrumb" aria-label="Localização">
@@ -245,6 +304,9 @@ export function PortalBreadcrumb() {
       <span aria-hidden="true">/</span>
       <b>
         {labels[pathname] ||
+          (pathname.startsWith("/operacao/empresas/")
+            ? "Empresa e contrato"
+            : undefined) ||
           (pathname.startsWith("/chamados/") && pathname.endsWith("/enviado")
             ? "Chamado enviado"
             : pathname.startsWith("/chamados/") && pathname.endsWith("/avaliar")

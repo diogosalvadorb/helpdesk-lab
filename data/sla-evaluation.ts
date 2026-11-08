@@ -77,6 +77,7 @@ export async function evaluateSlaBatch({
           const recipients = await tx.user.findMany({
             where: {
               emailVerified: true,
+              active: true,
               OR: [
                 { role: "ADMIN" },
                 ...(ticket.assigneeId
@@ -161,7 +162,7 @@ export async function evaluateSlaBatch({
             where: {
               teamId: ticket.teamId,
               active: true,
-              user: { role: "AGENT", emailVerified: true },
+              user: { role: "AGENT", emailVerified: true, active: true },
               level: {
                 in: (["N1", "N2", "N3"] as const).filter(
                   (level) =>

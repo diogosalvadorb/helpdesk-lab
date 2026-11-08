@@ -18,6 +18,7 @@ export const lifecycleTicketInclude = {
           id: true,
           email: true,
           emailVerified: true,
+          active: true,
           preferences: { select: { emailEnabled: true } },
         },
       },
@@ -39,7 +40,8 @@ export async function customerNotice(
   type: "TICKET_ESCALATED" | "TICKET_RESOLVED" | "TICKET_REPLIED",
   title: string,
 ) {
-  if (ticket.requester.status !== "ACTIVE") return;
+  if (ticket.requester.status !== "ACTIVE" || !ticket.requester.user.active)
+    return;
   await tx.notification.create({
     data: {
       ticketId: ticket.id,
@@ -82,7 +84,7 @@ export async function transferTicket(
         userId: input.assigneeId,
         teamId: team.id,
         active: true,
-        user: { role: "AGENT", emailVerified: true },
+        user: { role: "AGENT", emailVerified: true, active: true },
       },
       select: { level: true, maxActiveTickets: true },
     });

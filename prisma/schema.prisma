@@ -8,29 +8,45 @@ datasource db {
 }
 
 model User {
-  id            String                  @id
-  name          String
-  company       String                  @default("")
-  email         String
-  emailVerified Boolean                 @default(false)
-  image         String?
-  createdAt     DateTime                @default(now())
-  updatedAt     DateTime                @updatedAt
-  role          UserRole                @default(CLIENT)
-  memberships   CompanyMember[]
-  supportAgent  SupportAgent?
-  messages      TicketMessage[]
-  attachments   TicketAttachment[]
-  events        TicketEvent[]
-  escalations   TicketEscalation[]
-  articles      KnowledgeArticle[]
-  notifications Notification[]
-  preferences   NotificationPreference?
-  sessions      Session[]
-  accounts      Account[]
+  id                 String                  @id
+  name               String
+  company            String                  @default("")
+  email              String
+  emailVerified      Boolean                 @default(false)
+  active             Boolean                 @default(true)
+  image              String?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  role               UserRole                @default(CLIENT)
+  memberships        CompanyMember[]
+  supportAgent       SupportAgent?
+  messages           TicketMessage[]
+  attachments        TicketAttachment[]
+  events             TicketEvent[]
+  escalations        TicketEscalation[]
+  articles           KnowledgeArticle[]
+  notifications      Notification[]
+  preferences        NotificationPreference?
+  sessions           Session[]
+  accounts           Account[]
+  administrativeLogs AdministrativeLog[]
 
   @@unique([email])
   @@map("user")
+}
+
+model AdministrativeLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  actor     User     @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  entity    String
+  entityId  String
+  changes   Json
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId, createdAt])
+  @@index([actorId])
+  @@map("administrative_log")
 }
 
 model Session {
