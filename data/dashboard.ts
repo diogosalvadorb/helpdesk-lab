@@ -10,7 +10,11 @@ import {
 import { prisma } from "@/lib/prisma";
 import { measurementFromEvents } from "@/lib/ticket-sla";
 
+import { getPublicKnowledgeSuggestions as getKnowledgeArticles } from "./knowledge";
+import { readScopedNotifications } from "./notification-store";
 import { getPortalContext } from "./portal-context";
+export { getPublicKnowledgeSuggestions as getKnowledgeArticles } from "./knowledge";
+export { getNotificationPage as getPortalNotifications } from "./notifications";
 
 export async function getOpenTicketCount(statuses = openStatuses) {
   const { scope } = await getPortalContext();
@@ -22,15 +26,11 @@ export async function getOpenTicketCount(statuses = openStatuses) {
 export async function markOwnNotificationRead(id: string) {
   const context = await getPortalContext();
   if (!context.company) return false;
-  const result = await prisma.notification.updateMany({
-    where: {
-      id,
-      userId: context.user.id,
-      OR: [{ ticketId: null }, { ticket: context.scope }],
-    },
-    data: { readAt: new Date() },
+  await readScopedNotifications(context.user.id, context.company.id, {
+    operation: "one",
+    id,
   });
-  return result.count === 1;
+  return true;
 }
 
 const ticketSelect = {
@@ -101,16 +101,6 @@ export async function getPortalTickets(limit = 6, id?: string) {
 }
 export type PortalTicket = Awaited<ReturnType<typeof getPortalTickets>>[number];
 
-export async function getKnowledgeArticles() {
-  const context = await getPortalContext();
-  if (!context.company) return [];
-  return prisma.knowledgeArticle.findMany({
-    where: { status: "PUBLISHED", visibility: "PUBLIC" },
-    select: { id: true, title: true, body: true, readingMinutes: true },
-    orderBy: [{ publishedAt: "desc" }, { id: "asc" }],
-    take: 30,
-  });
-}
 export async function getServiceAgreement() {
   const { company } = await getPortalContext();
   if (!company) return null;
@@ -153,30 +143,6 @@ export async function getServiceAgreement() {
       },
     },
   });
-}
-export async function getPortalNotifications() {
-  const context = await getPortalContext();
-  if (!context.company) return { unread: 0, items: [] };
-  const where: Prisma.NotificationWhereInput = {
-    userId: context.user.id,
-    OR: [{ ticketId: null }, { ticket: context.scope }],
-  };
-  const [unread, items] = await Promise.all([
-    prisma.notification.count({ where: { ...where, readAt: null } }),
-    prisma.notification.findMany({
-      where,
-      take: 15,
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      select: { id: true, title: true, body: true, readAt: true },
-    }),
-  ]);
-  return {
-    unread,
-    items: items.map((n) => ({
-      ...n,
-      readAt: n.readAt?.toISOString() || null,
-    })),
-  };
 }
 export async function getDashboard() {
   const context = await getPortalContext();

@@ -82,10 +82,20 @@ export function AppNav({
                 Painel SLA
               </SidebarMenuButton>
             </SidebarMenuItem>
-            {[
-              { label: "Base de conhecimento", icon: BookOpen },
-              { label: "Relatórios", icon: ChartNoAxesColumn },
-            ].map((item) => (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                render={<Link href="/operacao/conhecimento" />}
+                isActive={isActive("/operacao/conhecimento")}
+                className={`portal-nav-item ${isActive("/operacao/conhecimento") ? "active" : ""}`}
+                aria-current={
+                  isActive("/operacao/conhecimento") ? "page" : undefined
+                }
+              >
+                <BookOpen aria-hidden="true" />
+                Base de conhecimento
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            {[{ label: "Relatórios", icon: ChartNoAxesColumn }].map((item) => (
               <SidebarMenuItem key={item.label}>
                 <FeatureNotice className="portal-nav-item">
                   <item.icon aria-hidden="true" />
@@ -297,6 +307,9 @@ export function PortalBreadcrumb() {
     "/operacao/sla/politicas": "Políticas de SLA",
     "/operacao/sla/calendarios": "Calendários",
     "/departamentos": "Departamentos",
+    "/operacao/conhecimento": "Gestão da base",
+    "/operacao/conhecimento/novo": "Novo artigo",
+    "/notificacoes": "Notificações",
   };
   return (
     <nav className="portal-breadcrumb" aria-label="Localização">
@@ -304,6 +317,11 @@ export function PortalBreadcrumb() {
       <span aria-hidden="true">/</span>
       <b>
         {labels[pathname] ||
+          (pathname.startsWith("/operacao/conhecimento/")
+            ? "Artigo da equipe"
+            : pathname.startsWith("/conhecimento/")
+              ? "Artigo de ajuda"
+              : undefined) ||
           (pathname.startsWith("/operacao/empresas/")
             ? "Empresa e contrato"
             : undefined) ||

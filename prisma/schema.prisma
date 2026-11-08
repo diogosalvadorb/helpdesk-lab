@@ -225,6 +225,7 @@ model Company {
   departments   Department[]
   contracts     Contract[]
   tickets       Ticket[]
+  notifications Notification[]
 
   @@index([status, name])
   @@map("company")
@@ -601,6 +602,8 @@ model Notification {
   userId    String
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   ticketId  String?
+  companyId String?
+  company   Company?         @relation(fields: [companyId], references: [id], onDelete: Restrict)
   ticket    Ticket?          @relation(fields: [ticketId], references: [id], onDelete: Restrict)
   type      NotificationType
   title     String
@@ -610,6 +613,7 @@ model Notification {
 
   @@index([userId, readAt, createdAt])
   @@index([ticketId])
+  @@index([userId, companyId, readAt, createdAt])
   @@map("notification")
 }
 

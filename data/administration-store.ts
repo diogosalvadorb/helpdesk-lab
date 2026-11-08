@@ -195,6 +195,7 @@ export async function saveAdministration(
             data: {
               userId: user.id,
               type: "MEMBERSHIP_APPROVED",
+              companyId: input.companyId,
               title: "Vínculo com a empresa aprovado",
               body: "Seu acesso já está disponível no portal.",
             },
