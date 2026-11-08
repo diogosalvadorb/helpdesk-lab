@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "db:seed": "prisma db seed --config prisma7.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -48,6 +49,7 @@
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^18.0.9",
     "eslint": "^9",
     "eslint-config-next": "16.4.5",
     "eslint-config-prettier": "^10.1.8",
@@ -56,7 +58,7 @@
     "prettier-plugin-tailwindcss": "^0.8.1",
     "prisma": "^7.10.1",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "vitest": "^5.1.0"
+    "tsx": "^4.23.15",
+    "typescript": "^5"
   }
 }
