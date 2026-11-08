@@ -191,6 +191,19 @@
   margin: auto;
 }
 
+.auth-otp-input {
+  height: 3rem;
+  text-align: center;
+  font-size: 1.375rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5rem;
+  padding-inline: 1rem;
+}
+
+.auth-box h1:focus {
+  outline: none;
+}
+
 .auth-box h1 {
   line-height: normal;
   font-weight: 400;

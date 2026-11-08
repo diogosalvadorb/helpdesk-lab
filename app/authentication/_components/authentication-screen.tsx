@@ -1,12 +1,30 @@
 "use client";
 import { Check } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import type { OtpPurpose } from "@/lib/validations/otp";
 
 import { AuthInfo } from "./auth-info";
 import LoginForm from "./login-form";
+import { OtpForm } from "./otp-form";
+import { PasswordResetDone } from "./password-reset-done";
 import RegisterForm from "./register-form";
+import { RequestCodeForm } from "./request-code-form";
+import { ResetPasswordForm } from "./reset-password-form";
+
+type AuthFlow =
+  | { view: "login"; message?: string }
+  | { view: "register" | "recover" | "done" }
+  | {
+      view: "code";
+      email: string;
+      purpose: OtpPurpose;
+      notice?: string;
+      error?: string;
+      retryAt: number;
+    }
+  | { view: "reset"; email: string; otp: string };
 
 export default function AuthenticationScreen({
   initialView = "login",
@@ -14,7 +32,20 @@ export default function AuthenticationScreen({
   initialView?: "login" | "register";
 }) {
   const [busy, setBusy] = useState(false);
-  const [view, setView] = useState<"login" | "register">(initialView);
+  const [flow, setFlow] = useState<AuthFlow>({ view: initialView });
+  const view = flow.view;
+  const contentRef = useRef<HTMLDivElement>(null);
+  const firstView = useRef(true);
+  useEffect(() => {
+    if (firstView.current) {
+      firstView.current = false;
+      return;
+    }
+    const heading = contentRef.current?.querySelector("h1");
+    heading?.setAttribute("tabindex", "-1");
+    heading?.focus();
+  }, [view]);
+  const backToLogin = () => setFlow({ view: "login" });
 
   return (
     <main className="auth-screen bg-auth-background font-auth text-auth-foreground [&_button:focus-visible]:outline-auth-primary grid min-h-[max(60rem,100svh)] grid-cols-[.95fr_1.05fr] text-sm [--border:var(--auth-border)] [--destructive:var(--auth-destructive)] [--foreground:var(--auth-foreground)] [--input:var(--auth-border)] [--muted-foreground:var(--auth-muted)] [--primary-foreground:var(--auth-card)] [--primary:var(--auth-primary)] [--ring:var(--auth-primary)] max-[50.0625rem]:block [&_button]:cursor-pointer [&_button:disabled]:cursor-wait [&_button:focus-visible]:outline-2 [&_button:focus-visible]:outline-offset-4">
@@ -78,7 +109,7 @@ export default function AuthenticationScreen({
       </section>
       <section
         className="flex min-w-0 flex-col px-16.25 py-10.5 max-[50.0625rem]:min-h-svh max-[50.0625rem]:p-7"
-        aria-label={view === "login" ? "Entrar" : "Criar conta"}
+        aria-label="Acesso à conta"
       >
         <div className="[&_b]:text-auth-primary mb-6.25 text-[1.5625rem] leading-[normal] font-[650] tracking-[-0.075rem] min-[50.0625rem]:hidden">
           helpdesk<b>.</b>
@@ -92,16 +123,107 @@ export default function AuthenticationScreen({
             className="auth-text-link"
             disabled={busy}
             type="button"
-            onClick={() => setView(view === "login" ? "register" : "login")}
+            onClick={() =>
+              setFlow({ view: view === "login" ? "register" : "login" })
+            }
           >
             {view === "login" ? "Criar conta →" : "Entrar →"}
           </Button>
         </div>
-        {view === "login" ? (
-          <LoginForm onBusyChange={setBusy} />
-        ) : (
-          <RegisterForm onBusyChange={setBusy} />
-        )}
+        <div ref={contentRef} className="flex flex-1 flex-col">
+          {flow.view === "login" && (
+            <LoginForm
+              onBusyChange={setBusy}
+              notice={flow.message}
+              onRecover={() => setFlow({ view: "recover" })}
+              onNeedsVerification={(email) =>
+                setFlow({
+                  view: "code",
+                  email,
+                  purpose: "email-verification",
+                  retryAt: 0,
+                  notice:
+                    "Confirme seu e-mail para entrar. Solicite um código pelo botão Reenviar código.",
+                })
+              }
+            />
+          )}
+          {flow.view === "register" && (
+            <RegisterForm
+              onBusyChange={setBusy}
+              onRegistered={({ email, sent, message }) =>
+                setFlow({
+                  view: "code",
+                  email,
+                  purpose: "email-verification",
+                  error: sent ? undefined : message,
+                  retryAt: Date.now() + 60000,
+                })
+              }
+            />
+          )}
+          {flow.view === "recover" && (
+            <RequestCodeForm
+              onBusyChange={setBusy}
+              onBack={backToLogin}
+              onSent={(email) =>
+                setFlow({
+                  view: "code",
+                  email,
+                  purpose: "forget-password",
+                  retryAt: Date.now() + 60000,
+                })
+              }
+            />
+          )}
+          {flow.view === "code" && (
+            <OtpForm
+              key={`${flow.email}:${flow.purpose}`}
+              email={flow.email}
+              purpose={flow.purpose}
+              initialNotice={flow.notice}
+              initialError={flow.error}
+              retryAt={flow.retryAt}
+              onBusyChange={setBusy}
+              onBack={backToLogin}
+              onChangeEmail={() =>
+                setFlow({
+                  view:
+                    flow.purpose === "forget-password" ? "recover" : "register",
+                })
+              }
+              onConfirmed={(otp) =>
+                setFlow(
+                  flow.purpose === "email-verification"
+                    ? {
+                        view: "login",
+                        message:
+                          "E-mail confirmado. Entre com sua senha para continuar.",
+                      }
+                    : { view: "reset", email: flow.email, otp },
+                )
+              }
+            />
+          )}
+          {flow.view === "reset" && (
+            <ResetPasswordForm
+              email={flow.email}
+              otp={flow.otp}
+              onBusyChange={setBusy}
+              onBack={backToLogin}
+              onNewCode={() =>
+                setFlow({
+                  view: "code",
+                  email: flow.email,
+                  purpose: "forget-password",
+                  retryAt: 0,
+                })
+              }
+              onSuccess={() => setFlow({ view: "done" })}
+            />
+          )}
+          {flow.view === "done" && <PasswordResetDone onLogin={backToLogin} />}
+        </div>
         <footer className="text-auth-bottom flex flex-wrap items-center justify-center gap-2 text-center text-[0.625rem] max-[50.0625rem]:mt-auto">
           <span>Ambiente seguro</span>
           <span aria-hidden="true">·</span>

@@ -1,8 +1,10 @@
 import { z } from "zod";
 
+import { emailSchema } from "./otp";
+
 export const registerSchema = z.object({
   name: z.string().trim().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  email: z.email("Email inválido"),
+  email: emailSchema,
   company: z.string().trim().min(1, "Informe a empresa"),
   password: z
     .string()

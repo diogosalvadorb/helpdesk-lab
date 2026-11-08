@@ -16,6 +16,17 @@ export const login = actionClient
         headers: await headers(),
       });
     } catch (error) {
+      if (
+        error instanceof APIError &&
+        error.body?.code === "EMAIL_NOT_VERIFIED"
+      ) {
+        return {
+          success: false as const,
+          needsVerification: true as const,
+          email: parsedInput.email.trim().toLowerCase(),
+          message: "Confirme seu e-mail para entrar.",
+        };
+      }
       if (error instanceof APIError && error.statusCode < 500) {
         returnValidationErrors(loginSchema, {
           _errors: [
@@ -27,5 +38,9 @@ export const login = actionClient
       }
       throw error;
     }
-    return { success: true, message: "Login realizado com sucesso!" };
+    return {
+      success: true as const,
+      needsVerification: false as const,
+      message: "Login realizado com sucesso!",
+    };
   });

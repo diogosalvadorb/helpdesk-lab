@@ -2,7 +2,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useAction } from "next-safe-action/hooks";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -28,11 +27,15 @@ type RegisterValues = z.infer<typeof registerSchema>;
 
 export default function RegisterForm({
   onBusyChange,
+  onRegistered,
 }: {
   onBusyChange: (busy: boolean) => void;
+  onRegistered: (result: {
+    email: string;
+    sent: boolean;
+    message: string;
+  }) => void;
 }) {
-  const router = useRouter();
-
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -51,12 +54,7 @@ export default function RegisterForm({
     isPending: busy,
   } = useAction(register, {
     onSuccess: (result) => {
-      if (result?.data?.message) {
-        toast.success(result.data.message);
-      }
-
-      router.replace("/");
-      router.refresh();
+      if (result.data) onRegistered(result.data);
     },
     onError: ({ error }) => {
       if (error.serverError) {

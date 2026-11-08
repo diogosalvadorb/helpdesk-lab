@@ -23,7 +23,6 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { loginSchema } from "@/lib/validations/login";
 
-import { AuthInfo } from "./auth-info";
 import { AuthInput as Input } from "./auth-input";
 import PasswordInput from "./password-input";
 
@@ -31,8 +30,14 @@ type LoginValues = z.infer<typeof loginSchema>;
 
 export default function LoginForm({
   onBusyChange,
+  onRecover,
+  onNeedsVerification,
+  notice,
 }: {
   onBusyChange: (busy: boolean) => void;
+  onRecover: () => void;
+  onNeedsVerification: (email: string) => void;
+  notice?: string;
 }) {
   const router = useRouter();
 
@@ -52,6 +57,11 @@ export default function LoginForm({
     isPending: busy,
   } = useAction(login, {
     onSuccess: (result) => {
+      if (result.data?.needsVerification) {
+        form.resetField("password");
+        onNeedsVerification(result.data.email);
+        return;
+      }
       if (result?.data?.message) {
         toast.success(result.data.message);
       }
@@ -164,7 +174,15 @@ export default function LoginForm({
                 </Label>
               )}
             />
-            <AuthInfo topic="recovery">Esqueci minha senha</AuthInfo>
+            <Button
+              type="button"
+              variant="link"
+              className="auth-text-link"
+              disabled={busy}
+              onClick={onRecover}
+            >
+              Esqueci minha senha
+            </Button>
           </div>
           <Button
             className="bg-auth-primary text-auth-card hover:bg-auth-primary/90 h-10.5 w-full rounded-md text-xs font-medium"
@@ -185,6 +203,14 @@ export default function LoginForm({
           </p>
         )}
       </form>
+      {notice && (
+        <p
+          role="status"
+          className="text-auth-primary mt-4 text-xs leading-relaxed"
+        >
+          {notice}
+        </p>
+      )}
       <Separator className="bg-auth-border my-5" />
       <p className="text-auth-muted text-center text-[0.6875rem] leading-[1.65]">
         Faz parte da equipe de TI?{" "}
