@@ -13,9 +13,11 @@ const timeLabel = (minutes: number) =>
 export function ServiceAgreement({
   agreement,
   expanded = false,
+  opening = false,
 }: {
   agreement: Awaited<ReturnType<typeof getServiceAgreement>>;
   expanded?: boolean;
+  opening?: boolean;
 }) {
   const medium = agreement?.slaPolicy.targets.find(
     (target) => target.priority === "MEDIUM",
@@ -31,8 +33,13 @@ export function ServiceAgreement({
         h.endMinute === hours[0].endMinute,
     );
   return (
-    <Card className="portal-card portal-agreement">
-      <h2>Seu acordo de atendimento</h2>
+    <Card
+      className={`portal-card portal-agreement ${opening ? "portal-knowledge" : ""}`}
+    >
+      {opening && <p className="portal-eyebrow">Seu acordo de atendimento</p>}
+      <h2>
+        {opening ? "Clareza em cada etapa." : "Seu acordo de atendimento"}
+      </h2>
       {agreement ? (
         <>
           <dl>

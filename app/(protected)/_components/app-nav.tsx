@@ -26,7 +26,8 @@ import { FeatureNotice } from "./portal-dialog";
 export function AppNav({ openCount }: { openCount: number }) {
   const pathname = usePathname();
   const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(`${href}/`);
+    (pathname === href || pathname.startsWith(`${href}/`)) &&
+    !(href === "/chamados" && pathname === "/chamados/novo");
   return (
     <nav aria-label="Navegação do portal">
       <SidebarGroup>
@@ -58,10 +59,15 @@ export function AppNav({ openCount }: { openCount: number }) {
             </SidebarMenuItem>
           ))}
           <SidebarMenuItem>
-            <FeatureNotice className="portal-nav-item">
+            <SidebarMenuButton
+              render={<Link href="/chamados/novo" />}
+              isActive={pathname === "/chamados/novo"}
+              className={`portal-nav-item ${pathname === "/chamados/novo" ? "active" : ""}`}
+              aria-current={pathname === "/chamados/novo" ? "page" : undefined}
+            >
               <Plus aria-hidden="true" />
               Abrir chamado
-            </FeatureNotice>
+            </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -114,6 +120,7 @@ export function PortalBreadcrumb() {
   const pathname = usePathname();
   const labels: Record<string, string> = {
     "/dashboard": "Início",
+    "/chamados/novo": "Novo chamado",
     "/chamados": "Meus chamados",
     "/conhecimento": "Base de conhecimento",
     "/sla": "Painel SLA",
@@ -121,7 +128,12 @@ export function PortalBreadcrumb() {
   return (
     <nav className="portal-breadcrumb" aria-label="Localização">
       Portal do cliente <span aria-hidden="true">/</span>
-      <b>{labels[pathname] || "Atendimento"}</b>
+      <b>
+        {labels[pathname] ||
+          (pathname.startsWith("/chamados/") && pathname.endsWith("/enviado")
+            ? "Chamado enviado"
+            : "Atendimento")}
+      </b>
     </nav>
   );
 }

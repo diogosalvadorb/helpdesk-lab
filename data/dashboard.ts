@@ -64,11 +64,11 @@ const ticketSelect = {
   },
 } satisfies Prisma.TicketSelect;
 
-export async function getPortalTickets(limit = 6) {
+export async function getPortalTickets(limit = 6, id?: string) {
   const { scope } = await getPortalContext();
   const now = new Date();
   const rows = await prisma.ticket.findMany({
-    where: scope,
+    where: id ? { AND: [scope, { id }] } : scope,
     select: ticketSelect,
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: Math.min(Math.max(limit, 1), 50),
@@ -109,6 +109,7 @@ export async function getServiceAgreement() {
       companyId: company.id,
       status: "ACTIVE",
       startsAt: { lte: now },
+      slaPolicy: { active: true },
       OR: [{ endsAt: null }, { endsAt: { gte: now } }],
     },
     orderBy: [{ startsAt: "desc" }, { id: "asc" }],

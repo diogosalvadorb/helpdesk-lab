@@ -15,8 +15,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-import { FeatureNotice } from "./portal-dialog";
-
 export function MobileMenu({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
@@ -54,6 +52,9 @@ export function MobileMenu({ children }: { children: ReactNode }) {
 }
 export function MobileNavigation() {
   const pathname = usePathname();
+  const isActive = (href: string) =>
+    (pathname === href || pathname.startsWith(`${href}/`)) &&
+    !(href === "/chamados" && pathname === "/chamados/novo");
   return (
     <nav className="portal-mobile-nav" aria-label="Navegação rápida">
       {[
@@ -62,18 +63,22 @@ export function MobileNavigation() {
       ].map((item) => (
         <Link
           key={item.href}
-          className={pathname === item.href ? "active" : ""}
+          className={isActive(item.href) ? "active" : ""}
           href={item.href}
-          aria-current={pathname === item.href ? "page" : undefined}
+          aria-current={isActive(item.href) ? "page" : undefined}
         >
           <item.icon aria-hidden="true" />
           {item.label}
         </Link>
       ))}
-      <FeatureNotice>
+      <Link
+        href="/chamados/novo"
+        className={pathname === "/chamados/novo" ? "active" : ""}
+        aria-current={pathname === "/chamados/novo" ? "page" : undefined}
+      >
         <Plus aria-hidden="true" />
         Abrir chamado
-      </FeatureNotice>
+      </Link>
       <Link
         className={pathname === "/conhecimento" ? "active" : ""}
         href="/conhecimento"

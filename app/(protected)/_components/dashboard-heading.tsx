@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 
-import { FeatureNotice } from "./portal-dialog";
+import { PortalLink } from "./portal-link";
 
 export function DashboardHeading({
   name,
@@ -21,10 +21,10 @@ export function DashboardHeading({
           Seu atendimento, suas respostas e os próximos passos. Tudo por aqui.
         </p>
       </div>
-      <FeatureNotice className="portal-primary-button">
+      <PortalLink href="/chamados/novo" className="portal-primary-button">
         <Plus aria-hidden="true" />
         Abrir chamado
-      </FeatureNotice>
+      </PortalLink>
     </div>
   );
 }
