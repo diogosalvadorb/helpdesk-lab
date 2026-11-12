@@ -2,6 +2,7 @@ import "dotenv/config";
 
 import { randomBytes } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
 
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hashPassword } from "better-auth/crypto";
@@ -18,11 +19,11 @@ import {
 const masterEmail = "diogosbarbosa93@gmail.com";
 const prefix = "helpdesk-demo";
 const id = (name: string) => `${prefix}-${name}`;
-const credentialsPath = new URL(
+const defaultCredentialsPath = new URL(
   "../.seed-credentials.local.json",
   import.meta.url,
 );
-const prisma = new PrismaClient({
+const defaultPrisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
 
@@ -32,15 +33,46 @@ const demoUsers: {
   role: UserRole;
   level?: SupportLevel;
 }[] = [
+  { key: "admin", name: "Administrador de demonstração", role: "ADMIN" },
   { key: "mariana", name: "Mariana Costa", role: "CLIENT" },
   { key: "joao", name: "João Almeida", role: "CLIENT" },
   { key: "julia", name: "Julia Martins", role: "AGENT", level: "N1" },
+  { key: "camila", name: "Camila Souza", role: "AGENT", level: "N1" },
+  { key: "lucas", name: "Lucas Ferreira", role: "AGENT", level: "N1" },
   { key: "rafael", name: "Rafael Santos", role: "AGENT", level: "N2" },
+  { key: "beatriz", name: "Beatriz Lima", role: "AGENT", level: "N2" },
+  { key: "diego", name: "Diego Ribeiro", role: "AGENT", level: "N2" },
   { key: "bruno", name: "Bruno Lima", role: "AGENT", level: "N3" },
+  { key: "renata", name: "Renata Alves", role: "AGENT", level: "N3" },
+  { key: "felipe", name: "Felipe Mendes", role: "AGENT", level: "N3" },
   { key: "carlos", name: "Carlos Oliveira", role: "CLIENT" },
+  { key: "patricia", name: "Patrícia Gomes", role: "CLIENT" },
+  { key: "roberto", name: "Roberto Dias", role: "CLIENT" },
+  { key: "fernanda", name: "Fernanda Rocha", role: "CLIENT" },
+  { key: "andre", name: "André Martins", role: "CLIENT" },
 ];
 
-async function seedDatabase() {
+const demoCompanies = [
+  { key: "nexus", name: "Nexus3D · Demonstração", manager: "mariana" },
+  {
+    key: "horizonte",
+    name: "Grupo Horizonte · Demonstração",
+    manager: "carlos",
+  },
+  { key: "aurora", name: "Aurora Saúde · Demonstração", manager: "patricia" },
+  {
+    key: "valeverde",
+    name: "Vale Verde Logística · Demonstração",
+    manager: "roberto",
+  },
+  { key: "atlas", name: "Atlas Educação · Demonstração", manager: "fernanda" },
+  { key: "orion", name: "Orion Comércio · Demonstração", manager: "andre" },
+] as const;
+
+export async function seedDatabase({
+  prisma = defaultPrisma,
+  credentialsPath = defaultCredentialsPath,
+}: { prisma?: PrismaClient; credentialsPath?: URL } = {}) {
   if (!process.env.DATABASE_URL)
     throw new Error("Configure DATABASE_URL antes de executar a seed.");
   if (process.env.NODE_ENV === "production")
@@ -55,65 +87,62 @@ async function seedDatabase() {
   const master = await prisma.user.findFirst({
     where: { email: { equals: masterEmail, mode: "insensitive" } },
   });
-  if (!master)
-    throw new Error(
-      "Cadastre a conta principal antes de executar a seed. A senha dessa conta não será criada nem alterada.",
-    );
-
-  let credentials: Record<string, string> = {};
-  try {
-    credentials = JSON.parse(await readFile(credentialsPath, "utf8"));
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT")
-      throw new Error(
-        "Não foi possível ler o arquivo local de credenciais demonstrativas.",
-      );
-  }
-  const hashes = new Map<string, string>();
-  for (const user of demoUsers) {
-    const email = `${user.key}@helpdesk.example.test`;
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing && existing.id !== id(`user-${user.key}`))
-      throw new Error(
-        "Uma conta demonstrativa conflita com um usuário existente. Nenhum dado foi alterado.",
-      );
-    const account =
-      existing &&
-      (await prisma.account.findFirst({
-        where: { userId: existing.id, providerId: "credential" },
-      }));
-    if (!account) {
-      const password =
-        process.env.SEED_DEMO_PASSWORD ||
-        credentials[email] ||
-        randomBytes(24).toString("base64url");
-      credentials[email] = password;
-      hashes.set(user.key, await hashPassword(password));
-    }
-  }
-  
-  if (hashes.size)
-    await writeFile(
-      credentialsPath,
-      `${JSON.stringify(credentials, null, 2)}\n`,
-      { mode: 0o600 },
-    );
+  // The demonstration administrator bootstraps a fresh clone. If the owner's
+  // existing account is present, preserve its credentials and previous access.
+  const ownerId = master?.id ?? id("user-admin");
 
   const now = new Date();
   const ago = (hours: number) => new Date(now.getTime() - hours * 3600000);
   const later = (hours: number) => new Date(now.getTime() + hours * 3600000);
-  await prisma.$transaction(
+  const summary = await prisma.$transaction(
     async (tx) => {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${prefix}, 0))::text`;
-      await tx.user.update({
-        where: { id: master.id },
-        data: { role: "ADMIN" },
-      });
+      let credentials: Record<string, string> = {};
+      try {
+        credentials = JSON.parse(await readFile(credentialsPath, "utf8"));
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT")
+          throw new Error(
+            "Não foi possível ler o arquivo local de credenciais demonstrativas.",
+          );
+      }
+      const hashes = new Map<string, string>();
+      for (const user of demoUsers) {
+        const email = `${user.key}@helpdesk.example.test`;
+        const existing = await tx.user.findUnique({ where: { email } });
+        if (existing && existing.id !== id(`user-${user.key}`))
+          throw new Error(
+            "Uma conta demonstrativa conflita com um usuário existente. Nenhum dado foi alterado.",
+          );
+        const account =
+          existing &&
+          (await tx.account.findFirst({
+            where: { userId: existing.id, providerId: "credential" },
+          }));
+        if (!account) {
+          const password =
+            process.env.SEED_DEMO_PASSWORD ||
+            credentials[email] ||
+            randomBytes(24).toString("base64url");
+          credentials[email] = password;
+          hashes.set(user.key, await hashPassword(password));
+        }
+      }
 
-      for (const [key, name] of [
-        ["nexus", "Nexus3D · Demonstração"],
-        ["horizonte", "Grupo Horizonte · Demonstração"],
-      ] as const) {
+      if (hashes.size)
+        await writeFile(
+          credentialsPath,
+          `${JSON.stringify(credentials, null, 2)}\n`,
+          { mode: 0o600 },
+        );
+
+      if (master)
+        await tx.user.update({
+          where: { id: master.id },
+          data: { role: "ADMIN" },
+        });
+
+      for (const { key, name } of demoCompanies) {
         await tx.company.upsert({
           where: { id: id(`company-${key}`) },
           update: {},
@@ -160,11 +189,10 @@ async function seedDatabase() {
             email,
             name: user.name,
             company:
-              user.role === "AGENT"
+              user.role !== "CLIENT"
                 ? "Nexo Tecnologia · Demonstração"
-                : user.key === "carlos"
-                  ? "Grupo Horizonte · Demonstração"
-                  : "Nexus3D · Demonstração",
+                : (demoCompanies.find((company) => company.manager === user.key)
+                    ?.name ?? "Nexus3D · Demonstração"),
             role: user.role,
             emailVerified: true,
           },
@@ -201,12 +229,6 @@ async function seedDatabase() {
         role: "ADMIN" | "MANAGER" | "REQUESTER";
       }[] = [
         {
-          userId: master.id,
-          company: "nexus",
-          dept: "technology",
-          role: "ADMIN",
-        },
-        {
           userId: id("user-mariana"),
           company: "nexus",
           dept: "admin",
@@ -225,6 +247,29 @@ async function seedDatabase() {
           role: "MANAGER",
         },
       ];
+      for (const company of demoCompanies) {
+        members.push({
+          userId: id("user-admin"),
+          company: company.key,
+          dept: "technology",
+          role: "ADMIN",
+        });
+        if (master)
+          members.push({
+            userId: master.id,
+            company: company.key,
+            dept: "technology",
+            role: "ADMIN",
+          });
+        if (company.key !== "nexus" && company.key !== "horizonte") {
+          members.push({
+            userId: id(`user-${company.manager}`),
+            company: company.key,
+            dept: "admin",
+            role: "MANAGER",
+          });
+        }
+      }
       for (const member of members)
         await tx.companyMember.upsert({
           where: {
@@ -312,7 +357,7 @@ async function seedDatabase() {
         });
         targets.set(priority, target.id);
       }
-      for (const company of ["nexus", "horizonte"])
+      for (const { key: company } of demoCompanies)
         await tx.contract.upsert({
           where: { number: `DEMO-${company.toUpperCase()}-001` },
           update: {},
@@ -437,6 +482,56 @@ async function seedDatabase() {
           requester: id("user-joao"),
         },
       ];
+      const companyIssues = [
+        [
+          "Acesso ao prontuário eletrônico",
+          "Falha na integração do agendamento",
+          "Indisponibilidade no serviço de exames",
+        ],
+        [
+          "Novo acesso ao painel de entregas",
+          "Coletores sem sincronização",
+          "Falha no processamento de rotas",
+        ],
+        [
+          "Acesso ao ambiente de aprendizagem",
+          "Falha no sistema de matrículas",
+          "Integração do portal acadêmico indisponível",
+        ],
+        [
+          "Cadastro de operador no caixa",
+          "Estoque sem sincronização entre lojas",
+          "Falha no processamento de pedidos",
+        ],
+      ];
+      const agentsByLevel = [
+        ["camila", "lucas", "julia"],
+        ["beatriz", "diego", "rafael"],
+        ["renata", "felipe", "bruno"],
+      ];
+      for (const [companyIndex, company] of demoCompanies.slice(2).entries()) {
+        for (const [levelIndex, level] of (
+          ["N1", "N2", "N3"] as const
+        ).entries()) {
+          tickets.push({
+            key: `${company.key}-${level.toLowerCase()}`,
+            subject: companyIssues[companyIndex][levelIndex],
+            status:
+              level === "N1"
+                ? "OPEN"
+                : level === "N2"
+                  ? "INVESTIGATING"
+                  : "IN_PROGRESS",
+            priority:
+              level === "N1" ? "LOW" : level === "N2" ? "MEDIUM" : "HIGH",
+            level,
+            dept: level === "N1" ? "admin" : "technology",
+            agent: agentsByLevel[levelIndex][companyIndex % 3],
+            company: company.key,
+            requester: id(`user-${company.manager}`),
+          });
+        }
+      }
       for (const [index, ticket] of tickets.entries()) {
         const company = ticket.company || "nexus";
         const existing = await tx.ticket.findUnique({
@@ -447,7 +542,7 @@ async function seedDatabase() {
         const data: Prisma.TicketUncheckedCreateInput = {
           id: id(`ticket-${ticket.key}`),
           companyId: id(`company-${company}`),
-          requesterId: ticket.requester || master.id,
+          requesterId: ticket.requester || ownerId,
           departmentId: id(`dept-${company}-${ticket.dept}`),
           contractId: id(`contract-${company}`),
           categoryId: category.id,
@@ -482,7 +577,7 @@ async function seedDatabase() {
           data: {
             id: id(`event-${ticket.key}`),
             ticketId: data.id!,
-            actorId: ticket.requester || master.id,
+            actorId: ticket.requester || ownerId,
             type: "CREATED",
             visibility: "PUBLIC",
             createdAt,
@@ -513,7 +608,7 @@ async function seedDatabase() {
           await tx.notification.create({
             data: {
               id: id(`notification-${ticket.key}`),
-              userId: ticket.requester || master.id,
+              userId: ticket.requester || ownerId,
               ticketId: data.id!,
               type: "CUSTOMER_REPLY_REQUIRED",
               title: ticket.subject,
@@ -555,24 +650,30 @@ async function seedDatabase() {
             keywords: ["demonstração", "suporte"],
           },
         });
+      return {
+        users: demoUsers.length,
+        companies: demoCompanies.length,
+        tickets: tickets.length,
+      };
     },
     { timeout: 30000 },
   );
   console.log(
-    "Seed concluída: conta principal com papel ADMIN; 6 contas demonstrativas, 2 empresas, 10 chamados e 3 artigos preparados sem duplicação.",
+    `Seed concluída: ${summary.users} contas demonstrativas (1 administrador, 3 agentes por nível e 7 clientes), ${summary.companies} empresas, ${summary.tickets} chamados e 3 artigos preparados sem duplicação.`,
   );
   console.log(
-    "Credenciais das novas contas demonstrativas: .seed-credentials.local.json (arquivo local ignorado pelo Git). A senha da conta principal foi preservada.",
+    "Administrador: admin@helpdesk.example.test. Senhas das novas contas: .seed-credentials.local.json (arquivo local ignorado pelo Git). Senhas existentes foram preservadas.",
   );
 }
 
-seedDatabase()
-  .catch(() => {
-    console.error(
-      "Não foi possível concluir a seed. Confira a conexão, o schema e a existência da conta principal. Nenhuma credencial foi registrada no log.",
-    );
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
+  seedDatabase()
+    .catch(() => {
+      console.error(
+        "Não foi possível concluir a seed. Confira a conexão, o schema e possíveis conflitos com contas existentes. Nenhuma credencial foi registrada no log.",
+      );
+      process.exitCode = 1;
+    })
+    .finally(async () => {
+      await defaultPrisma.$disconnect();
+    });
