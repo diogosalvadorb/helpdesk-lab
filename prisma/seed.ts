@@ -4,7 +4,6 @@ import { randomBytes } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
-import { PrismaPg } from "@prisma/adapter-pg";
 import { hashPassword } from "better-auth/crypto";
 
 import {
@@ -15,6 +14,7 @@ import {
   type TicketStatus,
   type UserRole,
 } from "../generated/prisma/client";
+import { SequentialPrismaPg } from "../lib/prisma-pg";
 
 const masterEmail = "diogosbarbosa93@gmail.com";
 const prefix = "helpdesk-demo";
@@ -24,7 +24,9 @@ const defaultCredentialsPath = new URL(
   import.meta.url,
 );
 const defaultPrisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  adapter: new SequentialPrismaPg({
+    connectionString: process.env.DATABASE_URL,
+  }),
 });
 
 const demoUsers: {
