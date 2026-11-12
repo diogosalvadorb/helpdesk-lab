@@ -8,8 +8,8 @@ export default function PageError({ reset }: { reset: () => void }) {
     <main className="portal-state" role="alert">
       <h1>Vamos tentar de novo?</h1>
       <p>
-        Não foi possível carregar esta página agora. Seus dados não foram
-        alterados.
+        Não foi possível carregar esta página agora. Tente novamente em
+        instantes.
       </p>
       <Button className="portal-primary-button" onClick={reset}>
         Tentar novamente

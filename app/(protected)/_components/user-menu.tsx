@@ -1,6 +1,7 @@
 "use client";
 
 import { LogOut } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -37,7 +38,9 @@ export function UserMenu({
         {initials(name)}
       </span>
       <div>
-        <strong>{name}</strong>
+        <Link href="/configuracoes" aria-label={`Configurações de ${name}`}>
+          <strong>{name}</strong>
+        </Link>
         <small>{roleLabel}</small>
         {error && <p role="alert">Não foi possível sair. Tente novamente.</p>}
       </div>

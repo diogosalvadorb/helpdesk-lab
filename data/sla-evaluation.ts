@@ -78,6 +78,14 @@ export async function evaluateSlaBatch({
             where: {
               emailVerified: true,
               active: true,
+              AND: [
+                {
+                  OR: [
+                    { preferences: null },
+                    { preferences: { slaAlerts: true } },
+                  ],
+                },
+              ],
               OR: [
                 { role: "ADMIN" },
                 ...(ticket.assigneeId

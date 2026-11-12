@@ -22,7 +22,7 @@ export const createTicket = actionClient
         return { ok: false as const, message: error.message };
       throw error;
     }
-    if (ticket.created) {
+    if (ticket.created && ticket.emailEnabled) {
       let status: "sent" | "failed" = "failed";
       try {
         await sendTicketConfirmation(ticket);

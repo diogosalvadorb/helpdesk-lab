@@ -20,6 +20,7 @@ import {
 } from "@/lib/validations/ticket-service";
 
 import { getAuthenticatedUser } from "./authenticated-user";
+import { optionalNotification } from "./optional-notification";
 import { getPortalContext } from "./portal-context";
 import {
   resumePause,
@@ -202,7 +203,9 @@ export async function persistTicketReply(raw: ReplyInput) {
             ...userSelection,
             email: true,
             emailVerified: true,
-            preferences: { select: { emailEnabled: true } },
+            preferences: {
+              select: { emailEnabled: true, ticketUpdates: true },
+            },
           },
         });
         const authorizedRecipient =
@@ -230,7 +233,7 @@ export async function persistTicketReply(raw: ReplyInput) {
                     ))),
               ));
         if (authorizedRecipient)
-          await tx.notification.create({
+          await optionalNotification(tx, {
             data: {
               ticketId: ticket.id,
               userId: recipientId,
@@ -242,7 +245,8 @@ export async function persistTicketReply(raw: ReplyInput) {
         if (
           authorizedRecipient &&
           recipient?.emailVerified &&
-          recipient.preferences?.emailEnabled !== false
+          recipient.preferences?.emailEnabled !== false &&
+          recipient.preferences?.ticketUpdates !== false
         )
           email = recipient.email;
       }
@@ -370,7 +374,7 @@ export async function persistServiceAction(raw: ServiceActionInput) {
       if (ticket.status === "OPEN") updates.status = "IN_PROGRESS";
       details.assigneeId = assigneeId;
       if (assigneeId !== user.id && assigneeId !== ticket.assigneeId)
-        await tx.notification.create({
+        await optionalNotification(tx, {
           data: {
             ticketId: ticket.id,
             userId: assigneeId,
@@ -424,7 +428,7 @@ export async function persistServiceAction(raw: ServiceActionInput) {
           });
         }
         if (ticket.requesterId !== user.id)
-          await tx.notification.create({
+          await optionalNotification(tx, {
             data: {
               ticketId: ticket.id,
               userId: ticket.requesterId,

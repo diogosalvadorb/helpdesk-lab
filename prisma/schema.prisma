@@ -316,17 +316,37 @@ model TicketCategory {
 }
 
 model BusinessCalendar {
-  id         String            @id @default(cuid())
-  name       String            @unique
-  timeZone   String            @default("America/Sao_Paulo")
-  alwaysOpen Boolean           @default(false)
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
-  hours      BusinessHours[]
-  holidays   CalendarHoliday[]
-  policies   SlaPolicy[]
+  id                   String                @id @default(cuid())
+  name                 String                @unique
+  timeZone             String                @default("America/Sao_Paulo")
+  alwaysOpen           Boolean               @default(false)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  hours                BusinessHours[]
+  holidays             CalendarHoliday[]
+  policies             SlaPolicy[]
+  portalConfigurations PortalConfiguration[]
 
   @@map("business_calendar")
+}
+
+model PortalConfiguration {
+  id                 String            @id @default("default")
+  organizationName   String            @default("")
+  supportEmail       String?
+  supportPhone       String?
+  responsibleEmail   String?
+  calendarId         String?
+  calendar           BusinessCalendar? @relation(fields: [calendarId], references: [id], onDelete: Restrict)
+  privacyText        String            @default("") @db.Text
+  termsText          String            @default("") @db.Text
+  privacyApproved    Boolean           @default(false)
+  termsApproved      Boolean           @default(false)
+  privacyPublishedAt DateTime?
+  termsPublishedAt   DateTime?
+  updatedAt          DateTime          @updatedAt
+
+  @@map("portal_configuration")
 }
 
 model BusinessHours {

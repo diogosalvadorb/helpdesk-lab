@@ -6,6 +6,7 @@ import type { Prisma, SupportLevel } from "@/generated/prisma/client";
 import { openStatuses } from "@/lib/portal-format";
 import { permittedLevels } from "@/lib/support-access";
 
+import { optionalNotification } from "./optional-notification";
 import { serviceTicketInclude, SupportInputError } from "./service-store";
 export const lifecycleTicketInclude = {
   ...serviceTicketInclude,
@@ -19,7 +20,7 @@ export const lifecycleTicketInclude = {
           email: true,
           emailVerified: true,
           active: true,
-          preferences: { select: { emailEnabled: true } },
+          preferences: { select: { emailEnabled: true, ticketUpdates: true } },
         },
       },
     },
@@ -42,7 +43,7 @@ export async function customerNotice(
 ) {
   if (ticket.requester.status !== "ACTIVE" || !ticket.requester.user.active)
     return;
-  await tx.notification.create({
+  await optionalNotification(tx, {
     data: {
       ticketId: ticket.id,
       userId: ticket.requesterId,
@@ -154,7 +155,7 @@ export async function transferTicket(
       "Seu chamado foi encaminhado para outro nível",
     );
   if (input.assigneeId && input.assigneeId !== input.actorId)
-    await tx.notification.create({
+    await optionalNotification(tx, {
       data: {
         ticketId: ticket.id,
         userId: input.assigneeId,

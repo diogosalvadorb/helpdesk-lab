@@ -30,7 +30,7 @@ export default function AuthenticationScreen({
   initialView = "login",
   initialNotice,
 }: {
-  initialView?: "login" | "register";
+  initialView?: "login" | "register" | "recover";
   initialNotice?: string;
 }) {
   const [busy, setBusy] = useState(false);

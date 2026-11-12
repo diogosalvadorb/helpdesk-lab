@@ -62,9 +62,11 @@ export default async function TicketSentPage({
       <p role="status" className="portal-muted">
         {ticket.emailStatus === "sent"
           ? "Confirmação por e-mail enviada."
-          : ticket.emailStatus === "failed"
-            ? "Seu chamado foi criado, mas não foi possível enviar a confirmação por e-mail. Não é necessário reenviar o chamado."
-            : "Seu chamado está salvo. O envio da confirmação por e-mail ainda não foi confirmado."}
+          : ticket.emailStatus === "disabled"
+            ? "A confirmação por e-mail está desativada nas suas preferências. Acompanhe o chamado pelo portal."
+            : ticket.emailStatus === "failed"
+              ? "Seu chamado foi criado, mas não foi possível enviar a confirmação por e-mail. Não é necessário reenviar o chamado."
+              : "Seu chamado está salvo. O envio da confirmação por e-mail ainda não foi confirmado."}
       </p>
       <div className="portal-confirmation-actions">
         <TicketDetail ticket={ticket} label="Ver detalhes" />

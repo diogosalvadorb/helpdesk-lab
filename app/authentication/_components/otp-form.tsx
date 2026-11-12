@@ -90,11 +90,23 @@ export function OtpForm({
     resend.result.serverError ||
     (resend.result.data?.ok === false ? resend.result.data.message : undefined);
   const registration = purpose === "email-verification";
+  const codeState =
+    verification.result.data?.ok === false
+      ? verification.result.data.codeState
+      : undefined;
   return (
     <AuthStep
       icon="mail"
       eyebrow={registration ? "Falta só um passo" : "Próximo passo"}
-      title={registration ? "Confirme seu cadastro." : "Instruções enviadas."}
+      title={
+        codeState === "expired"
+          ? "Seu código expirou."
+          : codeState === "invalid"
+            ? "Confira seu código."
+            : registration
+              ? "Confirme seu cadastro."
+              : "Instruções enviadas."
+      }
       description={
         <>
           <p>

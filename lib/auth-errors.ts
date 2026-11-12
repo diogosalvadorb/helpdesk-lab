@@ -6,6 +6,8 @@ export function authErrorMessage(error: unknown) {
   if (error.statusCode === 429)
     return "Muitas solicitações. Aguarde antes de tentar novamente.";
   switch (error.body?.code) {
+    case "INVALID_PASSWORD":
+      return "A senha atual está incorreta.";
     case "OTP_EXPIRED":
       return "Este código expirou. Solicite um novo código.";
     case "TOO_MANY_ATTEMPTS":

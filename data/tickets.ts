@@ -15,6 +15,7 @@ import {
   createTicketSchema,
 } from "@/lib/validations/ticket";
 
+import { ticketEmailAllowed } from "./optional-notification";
 import { getPortalContext } from "./portal-context";
 
 export class TicketInputError extends Error {}
@@ -89,6 +90,9 @@ export async function persistNewTicket(rawInput: CreateTicketInput) {
               emailVerified: true,
               active: true,
               role: true,
+              preferences: {
+                select: { emailEnabled: true, ticketUpdates: true },
+              },
               supportAgent: {
                 select: {
                   active: true,
@@ -152,6 +156,7 @@ export async function persistNewTicket(rawInput: CreateTicketInput) {
               number: previous.number,
               created: false,
               email: user.email,
+              emailEnabled: ticketEmailAllowed(user.preferences),
             };
           }
           const [department, category] = await Promise.all([
@@ -244,7 +249,9 @@ export async function persistNewTicket(rawInput: CreateTicketInput) {
                   visibility: "INTERNAL",
                   metadata: {
                     fingerprint: identity.fingerprint,
-                    emailStatus: "pending",
+                    emailStatus: ticketEmailAllowed(user.preferences)
+                      ? "pending"
+                      : "disabled",
                     ...(contract && target
                       ? {
                           slaSnapshot: makeSlaSnapshot(
@@ -259,18 +266,27 @@ export async function persistNewTicket(rawInput: CreateTicketInput) {
                   },
                 },
               },
-              notifications: {
-                create: {
-                  userId: context.user.id,
-                  type: "TICKET_CREATED",
-                  title: "Chamado recebido",
-                  body: input.subject,
-                },
-              },
+              ...(user.preferences?.ticketUpdates !== false
+                ? {
+                    notifications: {
+                      create: {
+                        userId: context.user.id,
+                        type: "TICKET_CREATED",
+                        title: "Chamado recebido",
+                        body: input.subject,
+                      },
+                    },
+                  }
+                : {}),
             },
             select: { id: true, number: true },
           });
-          return { ...ticket, created: true, email: user.email };
+          return {
+            ...ticket,
+            created: true,
+            email: user.email,
+            emailEnabled: ticketEmailAllowed(user.preferences),
+          };
         },
         {
           isolationLevel: Prisma.TransactionIsolationLevel.Serializable,

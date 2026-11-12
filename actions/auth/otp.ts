@@ -53,7 +53,14 @@ export const verifyCode = actionClient
         });
       return { ok: true as const };
     } catch (error) {
-      return { ok: false as const, message: authErrorMessage(error) };
+      return {
+        ok: false as const,
+        message: authErrorMessage(error),
+        codeState:
+          error instanceof APIError && error.body?.code === "OTP_EXPIRED"
+            ? ("expired" as const)
+            : ("invalid" as const),
+      };
     }
   });
 

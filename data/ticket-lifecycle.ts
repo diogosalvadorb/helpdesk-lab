@@ -333,6 +333,7 @@ export async function persistLifecycle(raw: LifecycleInput) {
       ticket.requester.user.emailVerified &&
       ticket.requester.user.active &&
       ticket.requester.user.preferences?.emailEnabled !== false &&
+      ticket.requester.user.preferences?.ticketUpdates !== false &&
       ticket.requesterId !== user.id
         ? ticket.requester.user.email
         : null;

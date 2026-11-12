@@ -1,4 +1,3 @@
-import { AuthInfo } from "@/app/authentication/_components/auth-info";
 import {
   Sidebar,
   SidebarContent,
@@ -50,11 +49,9 @@ export function AppSidebar({
             Consulte seu acordo de atendimento para horários e canais de
             suporte.
           </p>
-          <AuthInfo topic="help">Precisa de ajuda? ↗</AuthInfo>
+          <PortalLink href="/canais">Precisa de ajuda? ↗</PortalLink>
           {operationAvailable && (
-            <PortalLink href="/operacao/filas">
-              Central de operações ↗
-            </PortalLink>
+            <PortalLink href="/operacao">Central de operações ↗</PortalLink>
           )}
         </div>
       </SidebarContent>

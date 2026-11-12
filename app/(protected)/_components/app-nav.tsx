@@ -21,8 +21,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-import { FeatureNotice } from "./portal-dialog";
-
 export function AppNav({
   openCount,
   operationAvailable = false,
@@ -38,7 +36,10 @@ export function AppNav({
   const isActive = (href: string) =>
     (pathname === href || pathname.startsWith(`${href}/`)) &&
     !(href === "/chamados" && pathname === "/chamados/novo");
-  if (operationAvailable && pathname.startsWith("/operacao/"))
+  if (
+    operationAvailable &&
+    (pathname === "/operacao" || pathname.startsWith("/operacao/"))
+  )
     return (
       <nav aria-label="Navegação da operação">
         <SidebarGroup>
@@ -47,10 +48,15 @@ export function AppNav({
           </SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
-              <FeatureNotice className="portal-nav-item">
+              <SidebarMenuButton
+                render={<Link href="/operacao" />}
+                isActive={pathname === "/operacao"}
+                className={`portal-nav-item ${pathname === "/operacao" ? "active" : ""}`}
+                aria-current={pathname === "/operacao" ? "page" : undefined}
+              >
                 <House aria-hidden="true" />
                 Visão geral
-              </FeatureNotice>
+              </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
@@ -95,12 +101,23 @@ export function AppNav({
                 Base de conhecimento
               </SidebarMenuButton>
             </SidebarMenuItem>
-            {[{ label: "Relatórios", icon: ChartNoAxesColumn }].map((item) => (
+            {[
+              {
+                href: "/operacao/relatorios",
+                label: "Relatórios",
+                icon: ChartNoAxesColumn,
+              },
+            ].map((item) => (
               <SidebarMenuItem key={item.label}>
-                <FeatureNotice className="portal-nav-item">
+                <SidebarMenuButton
+                  render={<Link href={item.href} />}
+                  isActive={isActive(item.href)}
+                  aria-current={isActive(item.href) ? "page" : undefined}
+                  className={`portal-nav-item ${isActive(item.href) ? "active" : ""}`}
+                >
                   <item.icon aria-hidden="true" />
                   {item.label}
-                </FeatureNotice>
+                </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
@@ -112,6 +129,11 @@ export function AppNav({
           <SidebarMenu>
             {adminAvailable &&
               [
+                {
+                  href: "/operacao/configuracoes",
+                  label: "Configurações",
+                  icon: Settings,
+                },
                 {
                   href: "/operacao/empresas",
                   label: "Empresas clientes",
@@ -239,14 +261,19 @@ export function AppNav({
             </SidebarMenuButton>
           </SidebarMenuItem>
           {[
-            { label: "Relatórios", icon: ChartNoAxesColumn },
-            { label: "Configurações", icon: Settings },
+            { href: "/relatorios", label: "Relatórios", icon: ChartNoAxesColumn },
+            { href: "/configuracoes", label: "Configurações", icon: Settings },
           ].map((item) => (
             <SidebarMenuItem key={item.label}>
-              <FeatureNotice className="portal-nav-item">
+              <SidebarMenuButton
+                render={<Link href={item.href} />}
+                isActive={isActive(item.href)}
+                aria-current={isActive(item.href) ? "page" : undefined}
+                className={`portal-nav-item ${isActive(item.href) ? "active" : ""}`}
+              >
                 <item.icon aria-hidden="true" />
                 {item.label}
-              </FeatureNotice>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
           {departmentsAvailable && (
@@ -293,6 +320,14 @@ export function AppNav({
 export function PortalBreadcrumb() {
   const pathname = usePathname();
   const labels: Record<string, string> = {
+    "/operacao": "Visão geral",
+    "/operacao/relatorios": "Relatórios operacionais",
+    "/operacao/configuracoes": "Configurações operacionais",
+    "/relatorios": "Relatórios",
+    "/configuracoes": "Configurações",
+    "/canais": "Canais de atendimento",
+    "/privacidade": "Privacidade",
+    "/termos": "Termos de uso",
     "/dashboard": "Início",
     "/chamados/novo": "Novo chamado",
     "/chamados": "Meus chamados",
@@ -313,7 +348,9 @@ export function PortalBreadcrumb() {
   };
   return (
     <nav className="portal-breadcrumb" aria-label="Localização">
-      {pathname.startsWith("/operacao/") ? "Workspace" : "Portal do cliente"}{" "}
+      {pathname === "/operacao" || pathname.startsWith("/operacao/")
+        ? "Workspace"
+        : "Portal do cliente"}{" "}
       <span aria-hidden="true">/</span>
       <b>
         {labels[pathname] ||
